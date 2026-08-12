@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+# env & secrets
+.env
+*.env
+!.env.example
+# build output
+dist/
+build/
+# prisma
+server/prisma/*.db
+# logs & OS
+*.log
+.DS_Store
+# test and coverage
+coverage/
+# TS build info
+*.tsbuildinfo
+# bundler caches
+.vite/
