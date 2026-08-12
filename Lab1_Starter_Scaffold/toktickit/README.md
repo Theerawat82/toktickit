@@ -1,4 +1,9 @@
-# TokTickIT 
+# TokTickIT
+
+## Database Setup
+After pulling the code or updating the schema, prepare your database by running:
+1. `npx prisma migrate dev` (this will also generate the Prisma Client and run the seed)
+2. `npx prisma generate` (if only the client needs regenerating) 
 
 โปรเจกต์โครงสร้างพื้นฐานสำหรับเว็บแอปพลิเคชัน (Full-stack Starter Template) สำหรับวิชา CPE334 / SE Lab 1
 

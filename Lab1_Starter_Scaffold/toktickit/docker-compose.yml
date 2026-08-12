@@ -3,9 +3,9 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: toktickit
-      POSTGRES_PASSWORD: toktickit
-      POSTGRES_DB: toktickit
+      POSTGRES_USER: ${POSTGRES_USER:-toktickit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-your_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-toktickit}
     ports:
       - "5432:5432"
     volumes:
