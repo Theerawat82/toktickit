@@ -1,7 +1,7 @@
 # Lab 1 — Peer Review Record  (fill this in)
 
 **Author:** ธีรวัฒญ์ — 67070507206 — GitHub: @Theerawat82
-**Peer reviewer:** อภิวัชร์ — 67070507209 — GitHub: @apfirst13
+**Peer reviewer:** ภูรินท์ — 67070507214 — GitHub: @meebotsompurin-stack
 
 ## Pull Requests I authored (reviewed by my partner)
 | PR | Branch | Reviewer verdict |
