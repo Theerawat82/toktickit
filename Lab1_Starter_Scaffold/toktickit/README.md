@@ -16,3 +16,7 @@ After pulling the code or updating the schema, prepare your database by running:
    ```bash
    cp client/.env.example client/.env
    cp server/.env.example server/.env
+
+fix: update README.md setup instructions
+fix: add missing .env.example file
+refactor: fix typescript types in server
