@@ -20,3 +20,6 @@ coverage/
 *.tsbuildinfo
 # bundler caches
 .vite/
+# Compiled JS artifacts alongside TS source — only .ts/.tsx should be committed
+client/src/**/*.js
+client/src/**/*.js.map

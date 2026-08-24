@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import App from "../../src/App.js";
 import * as api from "../../src/api.js";
 
@@ -21,6 +21,9 @@ describe("App", () => {
 
     render(<App />);
 
+    // Button click triggers the fetch — no auto-load on mount
+    fireEvent.click(screen.getByRole("button", { name: /check system/i }));
+
     expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
 
     await waitFor(() => {
@@ -35,6 +38,9 @@ describe("App", () => {
     vi.spyOn(api, "checkSystem").mockRejectedValue(new Error("Backend is offline"));
 
     render(<App />);
+
+    // Button click triggers the fetch — no auto-load on mount
+    fireEvent.click(screen.getByRole("button", { name: /check system/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/The backend API is currently unavailable/i)).toBeInTheDocument();
