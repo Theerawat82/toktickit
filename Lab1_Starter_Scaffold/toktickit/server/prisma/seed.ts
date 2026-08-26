@@ -63,7 +63,7 @@ async function main() {
       },
     });
   }
-  console.log(`Seeded ${requesters.length} requester users (${requesters.filter(r => r.isActive).length} active, ${requesters.filter(r => !r.isActive).length} inactive) successfully.`);
+  console.log(`Seeded ${requesters.length} requester users (${requesters.filter((r) => r.isActive).length} active, ${requesters.filter((r) => !r.isActive).length} inactive) successfully.`);
 }
 
 main()
