@@ -40,12 +40,12 @@
 *   **BR-11 (Ticket Detail Access Control):** Users attempting to access a ticket they do not own will receive a 403 Forbidden error. (Lab 3 transition hooks: prepare role-based checks).
 
 ## 5. Data Changes
-**Overview of Schema Entities:**
-*   **Requester:** `id`, `name`, `email`, `department`, `is_active`.
-*   **Ticket:** `id`, `title`, `description`, `status`, `priority`, `category_id`, `system_id`, `requester_id`, `created_at`, `updated_at`.
-*   **Attachment:** `id`, `ticket_id`, `file_name`, `file_path`, `file_size`, `mime_type`, `uploaded_by`, `is_deleted`, `uploaded_at`.
-*   **Category:** `id`, `name`, `description`, `is_active`.
-*   **RelatedSystem:** `id`, `name`, `description`, `is_active`.
+**Overview of Schema Entities (Prisma Schema):**
+*   **Category:** `id` (Auto PK), `name` (String, Unique), `createdAt`, `updatedAt`, `tickets`.
+*   **RelatedSystem:** `id` (Auto PK), `name` (String, Unique), `createdAt`, `updatedAt`, `tickets`.
+*   **RequesterUser:** `id` (Auto PK), `name`, `email` (String, Unique), `isActive` (Boolean, default true), `createdAt`, `updatedAt`, `tickets`. Index: `@@index([isActive])`.
+*   **Ticket:** `id` (Auto PK), `ticketNumber` (String, Unique), `summary`, `description` (Optional), `requestedPriority`, `currentStatus` (Default "New"), `createdAt`, `updatedAt`, `requesterUserId` (FK), `categoryId` (FK), `relatedSystemId` (FK), `attachments`. Indexes: `@@index([requesterUserId])`, `@@index([categoryId])`, `@@index([currentStatus])`.
+*   **Attachment:** `id` (Auto PK), `fileName`, `fileUrl`, `fileType`, `fileSize`, `isRemoved` (Boolean, default false), `removedAt` (DateTime, optional), `removalReason` (String, optional), `createdAt`, `updatedAt`, `ticketId` (FK, Cascade on delete). Index: `@@index([ticketId])`.
 
 ## 6. API Contract Overview
 *   `GET /api/requesters`: Fetch active requesters.
@@ -60,11 +60,15 @@
 *   `POST /api/attachments/:id/remove`: Soft-remove attachment.
 
 ## 7. Data Design Decisions & Indexes justification
-*   **Decisions:** Use UUIDs for `Ticket.id` and `Attachment.id` to prevent ID enumeration. Soft deletion for attachments ensures auditability.
-*   **Indexes:**
-    *   Index on `Ticket.requester_id` for fast filtering by user.
-    *   Index on `Ticket.status` and `Ticket.priority` to optimize list filtering.
-    *   Full-text index (or trigram index) on `Ticket.title` and `Ticket.description` for search performance.
+
+### Database-Design Decision
+1. **Indexes Rationale:** To support high-frequency querying in the ticketing workflow, index constraints are added on key columns of the `Ticket` table:
+   - `@@index([requesterUserId])`: Accelerates listing and filtering tickets requested by a specific user (e.g., My Tickets view).
+   - `@@index([categoryId])`: Optimizes multi-criteria filtering by IT support category.
+   - `@@index([currentStatus])`: Speeds up state-based dashboard queries, ticket queue filtering, and search indexing by status (e.g., "New", "In Progress", "Resolved").
+   - `@@index([isActive])` on `RequesterUser`: Enables rapid fetching of active users in dropdowns while bypassing inactive accounts.
+
+2. **Soft-Delete Design Strategy:** The `Attachment` model adopts a soft-delete mechanism via `isRemoved` (Boolean, default `false`), `removedAt` (DateTime, optional), and `removalReason` (String, optional). Instead of permanently destroying file records in the database, setting `isRemoved = true` preserves full audit trails, uploaded file history, and context for compliance purposes, while logically concealing deleted attachments from standard user downloads and views.
 
 ## 8. Acceptance Criteria
 *   **AC-01 (Create Ticket Success):** Given a valid ticket payload, When I submit a POST to `/api/tickets`, Then a new ticket is created and I receive a 201 Created response.
@@ -118,8 +122,13 @@
 อ้างอิงดีไซน์ Zen Green Theme (#006B3C, #0B7A46, #EAF6EF) พร้อม Responsive Layout (Desktop/Tablet/Mobile)
 
 ## 7. Data Changes
-- Model: `RequesterUser`, `Ticket`, `Attachment`, `Category`, `RelatedSystem`
-- Seed Data: 4 Categories, 6 Related Systems, 4 Active Requesters, 1 Inactive Requester
+- Model: `Category`, `RelatedSystem`, `RequesterUser`, `Ticket`, `Attachment`
+  - `Category`: `id`, `name`, `createdAt`, `updatedAt`
+  - `RelatedSystem`: `id`, `name`, `createdAt`, `updatedAt`
+  - `RequesterUser`: `id`, `name`, `email`, `isActive`, `createdAt`, `updatedAt` (Index: `isActive`)
+  - `Ticket`: `id`, `ticketNumber`, `summary`, `description`, `requestedPriority`, `currentStatus`, `requesterUserId`, `categoryId`, `relatedSystemId`, `createdAt`, `updatedAt` (Indexes: `requesterUserId`, `categoryId`, `currentStatus`)
+  - `Attachment`: `id`, `fileName`, `fileUrl`, `fileType`, `fileSize`, `isRemoved`, `removedAt`, `removalReason`, `ticketId`, `createdAt`, `updatedAt` (Index: `ticketId`)
+- Seed Data: 4 Categories, 7 Related Systems, 4 Active Requesters, 1 Inactive Requester
 
 ## 8. API Contract
 - `GET /api/requesters/active`

@@ -10,12 +10,75 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------------------------
-// Issue 3 — Create and seed IT request categories
-// ---------------------------------------------------------------------------
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  tickets   Ticket[]
 }
+
+model RelatedSystem {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tickets   Ticket[]
+}
+
+model RequesterUser {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tickets   Ticket[]
+
+  @@index([isActive])
+}
+
+model Ticket {
+  id                Int           @id @default(autoincrement())
+  ticketNumber      String        @unique
+  summary           String
+  description       String?
+  requestedPriority String
+  currentStatus     String        @default("New")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  requesterUserId   Int
+  requesterUser     RequesterUser @relation(fields: [requesterUserId], references: [id])
+
+  categoryId        Int
+  category          Category      @relation(fields: [categoryId], references: [id])
+
+  relatedSystemId   Int
+  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+
+  attachments       Attachment[]
+
+  @@index([requesterUserId])
+  @@index([categoryId])
+  @@index([currentStatus])
+}
+
+model Attachment {
+  id            Int       @id @default(autoincrement())
+  fileName      String
+  fileUrl       String
+  fileType      String
+  fileSize      Int
+  isRemoved     Boolean   @default(false)
+  removedAt     DateTime?
+  removalReason String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  ticketId      Int
+  ticket        Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
