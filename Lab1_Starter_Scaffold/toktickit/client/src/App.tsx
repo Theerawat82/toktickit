@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { checkSystem, Category } from "./api.js";
+import DevelopmentRequesterSelection from "./components/DevelopmentRequesterSelection.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -41,6 +42,10 @@ export default function App() {
         <span className="text-success">IT Service Desk</span>
       </h1>
       <p className="text-muted mb-4">IT Support Request System</p>
+
+      {/* ── Requester Selection (Issue 3) ── */}
+      <DevelopmentRequesterSelection />
+      <hr className="my-4" />
 
       {/* ── [Check System] button ──
            Always rendered; disabled while loading prevents double-clicks. */}
