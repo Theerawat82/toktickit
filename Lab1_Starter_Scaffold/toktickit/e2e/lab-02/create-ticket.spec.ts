@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
+// @ts-ignore
 import * as fs from 'fs';
+// @ts-ignore
 import * as path from 'path';
 
 test.describe('Create Ticket Flow', () => {
@@ -45,11 +47,11 @@ test.describe('Create Ticket Flow', () => {
     // 5. Fill out the form
     await page.getByTestId('input-summary').fill('Cannot access the ERP system');
     await page.getByTestId('input-description').fill('I am getting an invalid password error when trying to log in.');
-    
+
     // Wait for reference dropdowns to populate, then select
     const categorySelect = page.getByTestId('select-category');
     await categorySelect.selectOption({ index: 1 });
-    
+
     const systemSelect = page.getByTestId('select-system');
     await systemSelect.selectOption({ index: 1 });
 
@@ -65,7 +67,7 @@ test.describe('Create Ticket Flow', () => {
     await expect(successBanner).toContainText('TIK-00001');
 
     // 8. Capture Screenshot
-    const screenshotDir = path.resolve(__dirname, '../../artifacts/lab-02/screenshots');
+    const screenshotDir = path.resolve('artifacts/lab-02/screenshots');
     if (!fs.existsSync(screenshotDir)) {
       fs.mkdirSync(screenshotDir, { recursive: true });
     }

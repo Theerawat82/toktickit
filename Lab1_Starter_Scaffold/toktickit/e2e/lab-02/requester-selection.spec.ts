@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
+// @ts-ignore
 import * as fs from 'fs';
+// @ts-ignore
 import * as path from 'path';
 
 const MOCK_REQUESTERS = [
@@ -44,7 +46,7 @@ test.describe('Development Requester Context', () => {
     expect(savedId).toBe('1');
 
     // Capture full-page screenshot
-    const screenshotDir = path.resolve(__dirname, '../../artifacts/lab-02/screenshots');
+    const screenshotDir = path.resolve('artifacts/lab-02/screenshots');
     if (!fs.existsSync(screenshotDir)) {
       fs.mkdirSync(screenshotDir, { recursive: true });
     }
