@@ -4,7 +4,7 @@ import { app } from "../../src/app.js";
 
 describe("GET /api/requesters", () => {
   it("should return 200 OK and an array of active requesters", async () => {
-    const res = await request(app).get("/api/requesters");
+    const res = await request(app).get("/api/requesters?active=true");
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -16,5 +16,12 @@ describe("GET /api/requesters", () => {
       expect(requester).toHaveProperty("email");
       expect(requester.isActive).toBe(true);
     }
+  });
+
+  it("should return all requesters when no filter is applied", async () => {
+    const res = await request(app).get("/api/requesters");
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
   });
 });
