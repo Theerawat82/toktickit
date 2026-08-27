@@ -1,9 +1,22 @@
 import { jsx as _jsx } from "react/jsx-runtime";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import App from "../../src/App.js";
 import * as api from "../../src/api.js";
+const MOCK_REQUESTERS = [
+    { id: 1, name: "Alice", email: "alice@example.com", isActive: true },
+];
 describe("App", () => {
+    beforeEach(() => {
+        // Provide a fetch mock so RequesterProvider resolves without hanging
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => MOCK_REQUESTERS,
+        });
+    });
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
     // WORKED EXAMPLE — provided for you.
     it("renders the TokTickIT heading", () => {
         render(_jsx(App, {}));
@@ -20,7 +33,8 @@ describe("App", () => {
         render(_jsx(App, {}));
         // Button click triggers the fetch — no auto-load on mount
         fireEvent.click(screen.getByRole("button", { name: /check system/i }));
-        expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
+        // Use getAllByText since multiple "loading" indicators may exist momentarily
+        expect(screen.getAllByText(/Loading.../i).length).toBeGreaterThan(0);
         await waitFor(() => {
             expect(screen.getByText(/Connected to TokTickIT API!/i)).toBeInTheDocument();
         });
