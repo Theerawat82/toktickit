@@ -35,7 +35,7 @@ interface RequesterContextValue {
 // ---------------------------------------------------------------------------
 // Context
 // ---------------------------------------------------------------------------
-const RequesterContext = createContext<RequesterContextValue | undefined>(
+export const RequesterContext = createContext<RequesterContextValue | undefined>(
   undefined
 );
 

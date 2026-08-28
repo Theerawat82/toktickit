@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider } from "./context/RequesterContext.js";
 import RequesterSelector from "./components/RequesterSelector.js";
+import CreateTicket from "./components/CreateTicket.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -55,6 +56,9 @@ export default function App() {
             <RequesterSelector />
           </div>
         </div>
+
+        {/* ── Create Ticket Form (Issue 12 / LAB2-04) ── */}
+        <CreateTicket />
 
         <hr className="my-4" />
 
