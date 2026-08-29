@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
 import { RequesterProvider } from "./context/RequesterContext.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicket from "./components/CreateTicket.js";
 import MyTickets from "./components/MyTickets.js";
+import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -11,6 +12,16 @@ export default function App() {
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [currentHash, setCurrentHash] = useState(window.location.hash);
+
+  useEffect(() => {
+    const onHashChange = () => setCurrentHash(window.location.hash);
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  const ticketMatch = currentHash.match(/^#ticket\/(\d+)$/);
+  const ticketId = ticketMatch ? Number(ticketMatch[1]) : null;
 
   const loadData = useCallback(async () => {
     setState("loading");
@@ -58,11 +69,17 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Create Ticket Form (Issue 12 / LAB2-04) ── */}
-        <CreateTicket />
+        {ticketId ? (
+          <RequesterTicketDetail ticketId={ticketId} />
+        ) : (
+          <>
+            {/* ── Create Ticket Form (Issue 12 / LAB2-04) ── */}
+            <CreateTicket />
 
-        {/* ── My Tickets List (Issue 5 / LAB2-05) ── */}
-        <MyTickets />
+            {/* ── My Tickets List (Issue 5 / LAB2-05) ── */}
+            <MyTickets />
+          </>
+        )}
 
         <hr className="my-4" />
 
