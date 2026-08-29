@@ -1,5 +1,39 @@
 import { Router, Request, Response } from "express";
 import { getPrisma } from "../prisma.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// Ensure uploads directory exists
+const uploadDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type"));
+    }
+  }
+});
+
+const uploadSingle = upload.single("file");
 
 const router = Router();
 
@@ -153,6 +187,107 @@ router.get("/", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Failed to fetch tickets:", error);
     res.status(500).json({ error: "Failed to fetch tickets" });
+  }
+});
+
+// GET /api/tickets/:id
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const requesterId = req.header("x-requester-id");
+    if (!requesterId || isNaN(Number(requesterId))) {
+      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({ error: "Invalid ticket ID" });
+    }
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        category: true,
+        relatedSystem: true,
+        requesterUser: true,
+        attachments: true
+      }
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    if (ticket.requesterUserId !== Number(requesterId)) {
+      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+    }
+
+    res.status(200).json(ticket);
+  } catch (error) {
+    console.error("Failed to fetch ticket detail:", error);
+    res.status(500).json({ error: "Failed to fetch ticket detail" });
+  }
+});
+
+// POST /api/tickets/:id/attachments
+router.post("/:id/attachments", (req, res, next) => {
+  uploadSingle(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req: Request, res: Response) => {
+  try {
+    const requesterId = req.header("x-requester-id");
+    if (!requesterId || isNaN(Number(requesterId))) {
+      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
+    }
+
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) {
+      return res.status(400).json({ error: "Invalid ticket ID" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: { attachments: { where: { isRemoved: false } } }
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: "Ticket not found" });
+    }
+
+    if (ticket.requesterUserId !== Number(requesterId)) {
+      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+    }
+
+    if (ticket.attachments.length >= 5) {
+      return res.status(400).json({ error: "Maximum of 5 active attachments allowed" });
+    }
+
+    // Save attachment record to db
+    const attachment = await prisma.attachment.create({
+      data: {
+        fileName: req.file.originalname,
+        fileUrl: `/uploads/${req.file.filename}`, // Using relative path for reference, download endpoint handles actual path
+        fileType: req.file.mimetype,
+        fileSize: req.file.size,
+        ticketId: ticket.id
+      }
+    });
+
+    res.status(201).json(attachment);
+  } catch (error) {
+    console.error("Failed to upload attachment:", error);
+    res.status(500).json({ error: "Failed to upload attachment" });
   }
 });
 
