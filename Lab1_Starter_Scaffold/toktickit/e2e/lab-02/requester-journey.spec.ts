@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { test, expect } from '@playwright/test';
 
 // ใช้ ESM Import พร้อมใส่ // @ts-ignore หาก VS Code หรือ TS Config ยังไม่โหลด Node Types
