@@ -1,19 +1,28 @@
 // @ts-nocheck
 import { test, expect } from '@playwright/test';
+
+// ใช้ ESM Import พร้อมใส่ // @ts-ignore หาก VS Code หรือ TS Config ยังไม่โหลด Node Types
+// @ts-ignore
 import { execSync } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+// @ts-ignore
+import * as path from 'path';
+// @ts-ignore
+import * as fs from 'fs';
 
 test.describe('Requester E2E Journey & Security Checks', () => {
 
   test.beforeAll(() => {
     // 1. Ensure test database is initialized with idempotent seed data
     console.log("Seeding database...");
-    const serverDir = path.resolve(__dirname, '../../server');
+    
+// @ts-ignore
+    const serverDir = path.resolve(process.cwd(), 'server');
+    
     execSync('npx prisma db seed', { 
       cwd: serverDir, 
       stdio: 'inherit',
       shell: true,
+      // @ts-ignore
       env: process.env 
     });
     
@@ -94,7 +103,7 @@ test.describe('Requester E2E Journey & Security Checks', () => {
     const ticketId = ticketUrl?.replace('#ticket/', '');
     expect(ticketId).toBeDefined();
     
-    // Use dispatchEvent to ensure compatibility across desktop and mobile safari
+    // ใช้ dispatchEvent('click') เพื่อให้ทำงานได้ทั้ง Desktop และ Mobile Safari ( Responsive Breakpoints )
     await ticketLink.dispatchEvent('click');
 
     // d. Ticket Detail & Attachments: Access read-only Ticket Detail view
@@ -114,8 +123,9 @@ test.describe('Requester E2E Journey & Security Checks', () => {
     await page.getByText('+ Upload Attachment').click();
     const fileChooser = await fileChooserPromise;
     
-    // Upload a valid fake file
-    const fakeFilePath = path.resolve(__dirname, 'test-dummy.pdf');
+    // Upload a valid fake file โดยอ้างอิงจาก root path ผ่าน process.cwd()
+    // @ts-ignore
+    const fakeFilePath = path.resolve(process.cwd(), 'e2e/lab-02/test-dummy.pdf');
     fs.writeFileSync(fakeFilePath, 'dummy content');
     
     await fileChooser.setFiles(fakeFilePath);
