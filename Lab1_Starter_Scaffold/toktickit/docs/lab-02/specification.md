@@ -1,0 +1,149 @@
+# Lab 2: TokTickIT Technical Specification
+
+## 1. Sprint Goal & Stakeholder Request
+**Stakeholder Request:** The IT Support team needs a robust ticketing system where employees (requesters) can submit support requests with attachments, and agents can view, search, filter, and manage these tickets efficiently.
+**Sprint Goal:** Deliver the core ticketing lifecycle management feature, including ticket creation, listing, detailed view, and attachment handling, with solid validation, business rules, and responsive UI design.
+
+## 2. Scope Included / Scope Excluded
+**Included:**
+*   Ticket creation (with fields like category, related system, priority, description, attachments).
+*   Ticket listing with search, filtering (category, priority, status), sorting, and pagination.
+*   Ticket detail view (read-only for requesters, editable state preparation for agents).
+*   Attachment management (upload, download, soft-remove).
+*   Requester switching (acting on behalf of another user).
+
+**Excluded:**
+*   Authentication & Authorization (to be mocked/bypassed for this sprint).
+*   Email notifications.
+*   SLA (Service Level Agreement) tracking.
+*   Advanced reporting dashboards.
+
+## 3. Functional Requirements
+*   **FR-01: Create Ticket:** Users can create a new support ticket by providing mandatory details (title, description, category, priority) and optional attachments.
+*   **FR-02: List Tickets:** Users can view a paginated list of tickets.
+*   **FR-03: Ticket Detail:** Users can view the full details of a specific ticket, including its history and associated attachments.
+*   **FR-04: Attachments:** Users can attach files to a ticket, download existing attachments, and soft-remove attachments they uploaded.
+*   **FR-05: Search/Filter/Sort/Pagination:** The ticket list supports keyword search on title/description, filtering by status/priority/category, sorting by creation date or priority, and offset-based pagination.
+*   **FR-06: Ownership:** Tickets belong to a specific requester. Agents can create tickets on behalf of a requester (switching).
+
+## 4. Business Rules
+*   **BR-01 (Defaults):** New tickets default to `Status = Open`. Priority defaults to `Medium` if not specified.
+*   **BR-02 (Requester Selection/Switching):** The system must allow selecting a requester when creating a ticket. If not selected, it defaults to the current logged-in user.
+*   **BR-03 (Ownership Enforcement):** Only the ticket requester or an authorized agent can view or modify a ticket.
+*   **BR-04 (Search/Filter/Sort Rules):** Search should perform a case-insensitive partial match on title and description. Multiple filters apply via logical AND.
+*   **BR-05 (Validation/Duplicates):** Ticket title must be between 10 and 100 characters. Description must be at least 20 characters. Duplicate titles from the same requester within 24 hours should be flagged or rejected.
+*   **BR-06 (Failure Behavior):** If attachment upload fails, the ticket creation should still proceed, but user must be warned. If DB insertion fails, transaction must rollback.
+*   **BR-07 (Attachment Upload):** Maximum file size is 5MB per file. Allowed extensions: .pdf, .png, .jpg, .docx. Maximum 5 attachments per ticket.
+*   **BR-08 (Attachment Download/Soft-remove):** Soft-remove sets `is_deleted = true` instead of physical deletion. Soft-removed files cannot be downloaded.
+*   **BR-09 (Inactive Requester Constraints):** Tickets cannot be created on behalf of inactive requesters.
+*   **BR-10 (Empty/No-result States):** The UI must display a clear "No tickets found" message when lists are empty or search yields no results.
+*   **BR-11 (Ticket Detail Access Control):** Users attempting to access a ticket they do not own will receive a 403 Forbidden error. (Lab 3 transition hooks: prepare role-based checks).
+
+## 5. Data Changes
+**Overview of Schema Entities (Prisma Schema):**
+*   **Category:** `id` (Auto PK), `name` (String, Unique), `createdAt`, `updatedAt`, `tickets`.
+*   **RelatedSystem:** `id` (Auto PK), `name` (String, Unique), `createdAt`, `updatedAt`, `tickets`.
+*   **RequesterUser:** `id` (Auto PK), `name`, `email` (String, Unique), `isActive` (Boolean, default true), `createdAt`, `updatedAt`, `tickets`. Index: `@@index([isActive])`.
+*   **Ticket:** `id` (Auto PK), `ticketNumber` (String, Unique), `summary`, `description` (Optional), `requestedPriority`, `currentStatus` (Default "New"), `createdAt`, `updatedAt`, `requesterUserId` (FK), `categoryId` (FK), `relatedSystemId` (FK), `attachments`. Indexes: `@@index([requesterUserId])`, `@@index([categoryId])`, `@@index([currentStatus])`.
+*   **Attachment:** `id` (Auto PK), `fileName`, `fileUrl`, `fileType`, `fileSize`, `isRemoved` (Boolean, default false), `removedAt` (DateTime, optional), `removalReason` (String, optional), `createdAt`, `updatedAt`, `ticketId` (FK, Cascade on delete). Index: `@@index([ticketId])`.
+
+## 6. API Contract Overview
+*   `GET /api/requesters`: Fetch active requesters.
+*   `GET /api/categories`: Fetch ticket categories.
+*   `GET /api/related-systems`: Fetch related systems.
+*   `POST /api/tickets`: Create a new ticket.
+*   `GET /api/tickets`: Retrieve a list of tickets (with filters).
+*   `GET /api/tickets/:id`: Retrieve a single ticket by ID.
+*   `POST /api/tickets/:id/attachments`: Upload an attachment.
+*   `GET /api/attachments/:id`: Get attachment metadata.
+*   `GET /api/attachments/:id/download`: Download attachment file.
+*   `POST /api/attachments/:id/remove`: Soft-remove attachment.
+
+## 7. Data Design Decisions & Indexes justification
+
+### Database-Design Decision
+1. **Indexes Rationale:** To support high-frequency querying in the ticketing workflow, index constraints are added on key columns of the `Ticket` table:
+   - `@@index([requesterUserId])`: Accelerates listing and filtering tickets requested by a specific user (e.g., My Tickets view).
+   - `@@index([categoryId])`: Optimizes multi-criteria filtering by IT support category.
+   - `@@index([currentStatus])`: Speeds up state-based dashboard queries, ticket queue filtering, and search indexing by status (e.g., "New", "In Progress", "Resolved").
+   - `@@index([isActive])` on `RequesterUser`: Enables rapid fetching of active users in dropdowns while bypassing inactive accounts.
+
+2. **Soft-Delete Design Strategy:** The `Attachment` model adopts a soft-delete mechanism via `isRemoved` (Boolean, default `false`), `removedAt` (DateTime, optional), and `removalReason` (String, optional). Instead of permanently destroying file records in the database, setting `isRemoved = true` preserves full audit trails, uploaded file history, and context for compliance purposes, while logically concealing deleted attachments from standard user downloads and views.
+
+## 8. Acceptance Criteria
+*   **AC-01 (Create Ticket Success):** Given a valid ticket payload, When I submit a POST to `/api/tickets`, Then a new ticket is created and I receive a 201 Created response.
+*   **AC-02 (Create Ticket Validation):** Given a payload missing the `title`, When I submit a POST to `/api/tickets`, Then I receive a 400 Bad Request with a validation error message.
+*   **AC-03 (List Tickets Pagination):** Given 25 tickets in the database, When I request `/api/tickets?page=2&pageSize=10`, Then I receive tickets 11-20.
+*   **AC-04 (Search Tickets):** Given tickets with titles "Login Issue" and "Hardware Failure", When I request `/api/tickets?search=Login`, Then I only receive the "Login Issue" ticket.
+*   **AC-05 (Upload Attachment):** Given a valid PNG file under 5MB, When I upload it to a specific ticket, Then I receive a 201 Created and the file metadata is returned.
+*   **AC-06 (Soft Remove Attachment):** Given an existing attachment, When I POST to its remove endpoint, Then its `is_deleted` flag becomes true and subsequent downloads return 404.
+*   **AC-07 (Access Control):** Given I am logged in as User A, When I try to GET a ticket belonging to User B, Then I receive a 403 Forbidden.
+
+## 9. Assumptions & Architectural Decisions
+*   **Assumptions:** The client will handle multi-part form data for attachments correctly. Current user context is provided via a mock header (e.g., `X-Mock-User-Id`) for this lab.
+*   **Architecture:** Layered architecture (Controller -> Service -> Repository). REST API for backend communication. React-based frontend using a defined design system.
+
+## 10. Out of Scope / Deferred Items
+*   Real-time WebSocket notifications for ticket updates (Deferred to Lab 4).
+*   Integration with Active Directory for Requester sync (Out of Scope).
+*   Automated ticket assignment routing rules (Deferred).
+
+## 11. Definition of Done (DoD)
+*   All code implemented and peer-reviewed.
+*   Unit tests written and passing (>80% coverage).
+*   API integration tests passing.
+*   UI components match the design specification and are responsive.
+*   No critical or high-severity bugs open.
+*   Documentation (these specifications) is up-to-date and accurate.
+# Lab 2 Sprint Engineering Specification
+
+## 1. Sprint Goal
+ส่งมอบระบบ MVP Ticketing สำหรับ Requester ในการสร้าง ดู และจัดการคำร้อง IT Support พร้อมระบบจำลอง Development Requester และโครงสร้างดีไซน์ Zen Green Theme
+
+## 2. Stakeholder Request Interpretation
+สรุปความต้องการ: ระบบต้องรองรับการเลือกตัวละครจำลอง (Development Requester), การแจ้งเรื่อง (Create Ticket), การดูรายการคำร้อง (My Tickets), การดูรายละเอียด (Ticket Detail) และการจัดการไฟล์แนบ (Soft-removal attachments) โดยห้ามไม่ให้ Requester เห็นข้อมูลของผู้อื่น
+
+## 3. Scope
+- **Included:** Create Ticket, My Tickets, Ticket Detail, Attachment Lifecycle (Soft Delete), Search/Filter/Sort/Pagination, Ownership Enforcement (backend validation)
+- **Excluded:** Authentication/Session จริง (ใช้ Dev Selector แทน), IT Staff Workflow, Comments/Internal Notes, Ticket Status Updates (หลังสร้างเสร็จ)
+
+## 4. Functional Requirements
+- FR-01: ระบบต้องสร้าง Ticket Number อัตโนมัติจาก backend
+- FR-02: Requester สามารถค้นหา และกรอง Ticket ของตัวเองได้
+- FR-03: รองรับการแนบไฟล์ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 5MB สูงสุด 5 ไฟล์
+
+## 5. Business Rules
+- BR-01: Official Ticket Number สร้างจาก Backend และต้องไม่ซ้ำกัน
+- BR-02: Ticket ใหม่เริ่มต้นที่ Status = "New"
+- BR-03: Development Requester selector ใช้สำหรับ Testing ใน Lab 2 เท่านั้น (ไม่ใช่ Auth)
+- BR-04: ไฟล์แนบที่ถูกลบ (Soft Remove) จะซ่อนปุ่ม Download/Preview แต่ยังคง Metadata ไว้
+
+## 6. UI Specification Summary
+อ้างอิงดีไซน์ Zen Green Theme (#006B3C, #0B7A46, #EAF6EF) พร้อม Responsive Layout (Desktop/Tablet/Mobile)
+
+## 7. Data Changes
+- Model: `Category`, `RelatedSystem`, `RequesterUser`, `Ticket`, `Attachment`
+  - `Category`: `id`, `name`, `createdAt`, `updatedAt`
+  - `RelatedSystem`: `id`, `name`, `createdAt`, `updatedAt`
+  - `RequesterUser`: `id`, `name`, `email`, `isActive`, `createdAt`, `updatedAt` (Index: `isActive`)
+  - `Ticket`: `id`, `ticketNumber`, `summary`, `description`, `requestedPriority`, `currentStatus`, `requesterUserId`, `categoryId`, `relatedSystemId`, `createdAt`, `updatedAt` (Indexes: `requesterUserId`, `categoryId`, `currentStatus`)
+  - `Attachment`: `id`, `fileName`, `fileUrl`, `fileType`, `fileSize`, `isRemoved`, `removedAt`, `removalReason`, `ticketId`, `createdAt`, `updatedAt` (Index: `ticketId`)
+- Seed Data: 4 Categories, 7 Related Systems, 4 Active Requesters, 1 Inactive Requester
+
+## 8. API Contract
+- `GET /api/requesters/active`
+- `POST /api/tickets`
+- `GET /api/tickets` (Query params: search, filter, sort, page)
+- `POST /api/tickets/:id/attachments`
+- `DELETE /api/attachments/:id` (Soft Delete with reason)
+
+## 9. Acceptance Criteria
+- AC-01: Given ข้อมูล Ticket ถูกต้อง, When ผู้ใช้กด Submit, Then ระบบบันทึก Ticket และคืนค่า Ticket Number
+- AC-02: Given ยังไม่ได้เลือก Dev Requester, When เข้าหน้า My Tickets, Then ระบบจะ Redirect ไปหน้า Dev Selector
+
+## 10. Definition of Done
+- Test ทั้งหมด (Unit, API, UI, E2E) รันผ่าน 100%
+- ผ่าน Peer Review และไม่มี Skipped Tests
+
+## 11. Assumptions and Decisions
+- ใช้ Soft Delete แทน Hard Delete สำหรับ Attachments เพื่อรักษา History
