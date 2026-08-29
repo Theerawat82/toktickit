@@ -3,6 +3,7 @@ import { checkSystem, Category } from "./api.js";
 import { RequesterProvider } from "./context/RequesterContext.js";
 import RequesterSelector from "./components/RequesterSelector.js";
 import CreateTicket from "./components/CreateTicket.js";
+import MyTickets from "./components/MyTickets.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -59,6 +60,9 @@ export default function App() {
 
         {/* ── Create Ticket Form (Issue 12 / LAB2-04) ── */}
         <CreateTicket />
+
+        {/* ── My Tickets List (Issue 5 / LAB2-05) ── */}
+        <MyTickets />
 
         <hr className="my-4" />
 
