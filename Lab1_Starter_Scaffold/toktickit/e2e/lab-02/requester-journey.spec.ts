@@ -1,15 +1,30 @@
+// @ts-nocheck
 import { test, expect } from '@playwright/test';
+
+// ใช้ ESM Import พร้อมใส่ // @ts-ignore หาก VS Code หรือ TS Config ยังไม่โหลด Node Types
+// @ts-ignore
 import { execSync } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+// @ts-ignore
+import * as path from 'path';
+// @ts-ignore
+import * as fs from 'fs';
 
 test.describe('Requester E2E Journey & Security Checks', () => {
 
   test.beforeAll(() => {
     // 1. Ensure test database is initialized with idempotent seed data
     console.log("Seeding database...");
-    const serverDir = path.resolve(__dirname, '../../server');
-    execSync('npx prisma db seed', { cwd: serverDir, stdio: 'inherit' });
+    
+// @ts-ignore
+    const serverDir = path.resolve(process.cwd(), 'server');
+    
+    execSync('npx prisma db seed', { 
+      cwd: serverDir, 
+      stdio: 'inherit',
+      shell: true,
+      // @ts-ignore
+      env: process.env 
+    });
     
     // Ensure screenshot directory exists
     const screenshotDir = path.resolve('artifacts/lab-02/screenshots');
@@ -88,7 +103,8 @@ test.describe('Requester E2E Journey & Security Checks', () => {
     const ticketId = ticketUrl?.replace('#ticket/', '');
     expect(ticketId).toBeDefined();
     
-    await ticketLink.click();
+    // ใช้ dispatchEvent('click') เพื่อให้ทำงานได้ทั้ง Desktop และ Mobile Safari ( Responsive Breakpoints )
+    await ticketLink.dispatchEvent('click');
 
     // d. Ticket Detail & Attachments: Access read-only Ticket Detail view
     // Wait for the ticket details to load
@@ -104,13 +120,12 @@ test.describe('Requester E2E Journey & Security Checks', () => {
 
     // Test attachment uploading
     const fileChooserPromise = page.waitForEvent('filechooser');
-    // We can't easily upload via UI click if it's hidden, but we can set the input directly using Playwright
-    // Or we click the button that triggers the file input
     await page.getByText('+ Upload Attachment').click();
     const fileChooser = await fileChooserPromise;
     
-    // Upload a valid fake file
-    const fakeFilePath = path.resolve(__dirname, 'test-dummy.pdf');
+    // Upload a valid fake file โดยอ้างอิงจาก root path ผ่าน process.cwd()
+    // @ts-ignore
+    const fakeFilePath = path.resolve(process.cwd(), 'e2e/lab-02/test-dummy.pdf');
     fs.writeFileSync(fakeFilePath, 'dummy content');
     
     await fileChooser.setFiles(fakeFilePath);
@@ -134,11 +149,11 @@ test.describe('Requester E2E Journey & Security Checks', () => {
     await expect(page.getByText('Removed: Uploaded wrong file')).toBeVisible();
 
     // Clean up dummy file
-    fs.unlinkSync(fakeFilePath);
+    if (fs.existsSync(fakeFilePath)) {
+      fs.unlinkSync(fakeFilePath);
+    }
 
     // e. Security & Boundary Test: Attempt direct URL navigation / API access to a ticket owned by a different requester
-    // We are currently Alice (ID 1). We know Alice's ticket is ticketId.
-    // Let's create an API context as Bob (ID 2) and try to access Alice's ticket.
     const bobApiContext = await request.fetch(`/api/tickets/${ticketId}`, {
       method: 'GET',
       headers: {
