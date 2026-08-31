@@ -28,13 +28,13 @@
 
 | Acceptance Criteria | Linked Test IDs | Status |
 | :--- | :--- | :--- |
-| AC-01 (Create Ticket Success) | TC-01, TC-12 | Planned |
-| AC-02 (Create Ticket Validation) | TC-02, TC-03, TC-08 | Planned |
-| AC-03 (List Tickets Pagination) | TC-04 | Planned |
-| AC-04 (Search Tickets) | TC-05 | Planned |
-| AC-05 (Upload Attachment) | TC-09, TC-10, TC-12 | Planned |
-| AC-06 (Soft Remove Attachment) | TC-11 | Planned |
-| AC-07 (Access Control) | TC-06 | Planned |
+| AC-01 (Create Ticket Success) | TC-01, TC-12 | Pass |
+| AC-02 (Create Ticket Validation) | TC-02, TC-03, TC-08 | Pass |
+| AC-03 (List Tickets Pagination) | TC-04 | Pass |
+| AC-04 (Search Tickets) | TC-05 | Pass |
+| AC-05 (Upload Attachment) | TC-09, TC-10, TC-12 | Pass |
+| AC-06 (Soft Remove Attachment) | TC-11 | Pass |
+| AC-07 (Access Control) | TC-06 | Pass |
 
 ## 6. Final Results
 *(This section is a placeholder for test run logs and metrics to be populated during execution)*
