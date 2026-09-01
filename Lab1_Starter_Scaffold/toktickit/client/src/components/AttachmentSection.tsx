@@ -40,6 +40,13 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
   const [removalReason, setRemovalReason] = useState("");
   const [removeError, setRemoveError] = useState("");
 
+  // Download Error Modal State
+  const [errorModal, setErrorModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+  }>({ show: false, title: "", message: "" });
+
   const activeAttachments = attachments.filter(a => !a.isRemoved);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,13 +139,27 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
   };
 
   const downloadAttachment = async (attachment: Attachment) => {
-    if (attachment.isRemoved) return;
     try {
       const res = await fetch(`/api/attachments/${attachment.id}/download`, {
-        headers: { "x-requester-id": String(activeRequester?.id) },
+        method: "GET",
+        headers: {
+          "x-requester-id": String(activeRequester?.id || "1"),
+        },
       });
-      if (!res.ok) throw new Error("Failed to download");
-      
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData.error || `HTTP ${res.status}: Download Blocked`;
+        
+        setErrorModal({
+          show: true,
+          title: "[Blocked Removed Download]",
+          message: `Failed to download "${attachment.fileName}".\nReason: ${errorMsg}`,
+        });
+        return;
+      }
+
+      // Trigger normal browser download
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -146,11 +167,14 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
       a.download = attachment.fileName;
       document.body.appendChild(a);
       a.click();
-      a.remove();
       window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to download file.");
+      document.body.removeChild(a);
+    } catch (err: any) {
+      setErrorModal({
+        show: true,
+        title: "Download Error",
+        message: err.message || "Unable to process download request",
+      });
     }
   };
 
@@ -208,7 +232,12 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
               >
                 <div className="text-truncate" style={{ maxWidth: '70%' }}>
                   {att.isRemoved ? (
-                    <span className="text-decoration-line-through text-muted small">
+                    <span 
+                      className="text-decoration-line-through text-muted small"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => downloadAttachment(att)}
+                      title="Test Blocked Download"
+                    >
                       📄 {att.fileName}
                     </span>
                   ) : (
@@ -276,6 +305,49 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
             </div>
           </div>
         </>
+      )}
+      {/* Custom Blocked Download Error Modal */}
+      {errorModal.show && (
+        <div
+          className="modal show d-block"
+          tabIndex={-1}
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow rounded-3 overflow-hidden">
+              {/* Red Header Bar */}
+              <div className="modal-header bg-danger text-white py-3 px-4">
+                <h5 className="modal-title fw-bold fs-5">{errorModal.title}</h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setErrorModal({ show: false, title: "", message: "" })}
+                ></button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="modal-body p-4 text-start">
+                <p
+                  className="mb-0 text-dark fs-6"
+                  style={{ whiteSpace: "pre-line", lineHeight: "1.5" }}
+                >
+                  {errorModal.message}
+                </p>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="modal-footer border-0 bg-light px-4 py-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary px-4 fw-semibold"
+                  onClick={() => setErrorModal({ show: false, title: "", message: "" })}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
