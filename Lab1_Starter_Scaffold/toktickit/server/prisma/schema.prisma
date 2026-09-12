@@ -1,6 +1,3 @@
-// Prisma schema — datasource and generator are pre-wired.
-// Your DATABASE_URL lives in server/.env (copy it from .env.example).
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,6 +5,30 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Requester
+  IT_Staff
+  Administrator
+}
+
+enum ITPriority {
+  Low
+  Medium
+  High
+  Urgent
+}
+
+enum TicketStatus {
+  New
+  Open
+  In_Progress
+  Waiting_for_Requester
+  Resolved
+  Closed
+  Reopened
+  Cancelled
 }
 
 model Category {
@@ -26,42 +47,55 @@ model RelatedSystem {
   tickets   Ticket[]
 }
 
-model RequesterUser {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tickets   Ticket[]
-
-  @@index([isActive])
+model User {
+  id                 Int            @id @default(autoincrement())
+  email              String         @unique
+  name               String
+  password           String
+  role               Role           @default(Requester)
+  isActive           Boolean        @default(true)
+  mustChangePassword Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  requestedTickets   Ticket[]       @relation("TicketRequester")
+  assignedTickets    Ticket[]       @relation("TicketOwner")
+  comments           Comment[]
+  internalNotes      InternalNote[]
 }
 
 model Ticket {
-  id                Int           @id @default(autoincrement())
-  ticketNumber      String        @unique
+  id                Int      @id @default(autoincrement())
+  ticketNumber      String   @unique
   summary           String
   description       String?
   requestedPriority String
-  currentStatus     String        @default("New")
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  currentStatus     String   @default("New")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  requesterUserId   Int
-  requesterUser     RequesterUser @relation(fields: [requesterUserId], references: [id])
+  requesterId Int
+  requester   User @relation("TicketRequester", fields: [requesterId], references: [id])
 
-  categoryId        Int
-  category          Category      @relation(fields: [categoryId], references: [id])
+  ticketOwnerId Int?
+  ticketOwner   User? @relation("TicketOwner", fields: [ticketOwnerId], references: [id])
 
-  relatedSystemId   Int
-  relatedSystem     RelatedSystem @relation(fields: [relatedSystemId], references: [id])
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
 
-  attachments       Attachment[]
+  relatedSystemId Int
+  relatedSystem   RelatedSystem @relation(fields: [relatedSystemId], references: [id])
 
-  @@index([requesterUserId])
+  itPriority ITPriority   @default(Low)
+  status     TicketStatus @default(New)
+
+  attachments   Attachment[]
+  comments      Comment[]
+  internalNotes InternalNote[]
+
+  @@index([requesterId])
+  @@index([ticketOwnerId])
   @@index([categoryId])
-  @@index([currentStatus])
+  @@index([status])
 }
 
 model Attachment {
@@ -76,9 +110,34 @@ model Attachment {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  ticketId      Int
-  ticket        Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId Int
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
 }
 
+model Comment {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([authorId])
+}
+
+model InternalNote {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([authorId])
+}

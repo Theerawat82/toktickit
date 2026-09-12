@@ -35,6 +35,17 @@ const upload = multer({
 
 const uploadSingle = upload.single("file");
 
+// TODO [LAB3-03]: Replace x-requester-id header parsing with authenticated JWT/Session context (Issue #3)
+// Extracts and validates the requester's user ID from the request.
+// For Lab 2 backward compatibility, reads from the x-requester-id header or req.body.requesterId.
+// Returns a parsed integer ID, or null if missing/invalid.
+function getRequesterUserId(req: Request): number | null {
+  const raw = req.header("x-requester-id") ?? req.body?.requesterId;
+  if (raw === undefined || raw === null || raw === "") return null;
+  const parsed = Number(raw);
+  return isNaN(parsed) ? null : parsed;
+}
+
 const router = Router();
 
 // POST /api/tickets
@@ -59,7 +70,7 @@ router.post("/", async (req: Request, res: Response) => {
     const [category, system, requester] = await Promise.all([
       prisma.category.findUnique({ where: { id: Number(categoryId) } }),
       prisma.relatedSystem.findUnique({ where: { id: Number(systemId) } }),
-      prisma.requesterUser.findUnique({ where: { id: Number(requesterId) } })
+      prisma.user.findUnique({ where: { id: Number(requesterId), role: "Requester" } as any })
     ]);
 
     if (!category) return res.status(400).json({ error: "Invalid categoryId" });
@@ -74,7 +85,7 @@ router.post("/", async (req: Request, res: Response) => {
       const nextId = lastTicket ? lastTicket.id + 1 : 1;
       const ticketNumber = "TIK-" + String(nextId).padStart(5, "0");
 
-      return await tx.ticket.create({
+      const created = await tx.ticket.create({
         data: {
           ticketNumber,
           summary,
@@ -83,9 +94,11 @@ router.post("/", async (req: Request, res: Response) => {
           currentStatus: "New",
           categoryId: Number(categoryId),
           relatedSystemId: Number(systemId),
-          requesterUserId: Number(requesterId),
+          requesterId: Number(requesterId),
         }
       });
+      // Alias requesterId as requesterUserId for backward-compat with Lab 2 clients
+      return { ...created, requesterUserId: created.requesterId };
     });
 
     res.status(201).json(ticket);
@@ -98,8 +111,9 @@ router.post("/", async (req: Request, res: Response) => {
 // GET /api/tickets
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
+    // TODO [LAB3-03]: Replace x-requester-id header parsing with authenticated JWT/Session context (Issue #3)
+    const requesterId = getRequesterUserId(req);
+    if (requesterId === null) {
       return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
     }
 
@@ -119,7 +133,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     // Strict requester ownership isolation
     const whereClause: any = {
-      requesterUserId: Number(requesterId)
+      requesterId: requesterId
     };
 
     // Case-insensitive partial match on ticketNumber and summary
@@ -158,7 +172,7 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     const prisma = getPrisma();
-    const [totalTickets, tickets] = await prisma.$transaction([
+    const [totalTickets, rawTickets] = await prisma.$transaction([
       prisma.ticket.count({ where: whereClause }),
       prisma.ticket.findMany({
         where: whereClause,
@@ -167,10 +181,12 @@ router.get("/", async (req: Request, res: Response) => {
         take: limitNum,
         include: {
           category: true,
-          requesterUser: true
+          requester: true
         }
       })
     ]);
+    // Alias requesterId as requesterUserId for backward-compat with Lab 2 clients
+    const tickets = rawTickets.map((t: any) => ({ ...t, requesterUserId: t.requesterId }));
 
     const totalPages = Math.ceil(totalTickets / limitNum);
 
@@ -193,8 +209,9 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /api/tickets/:id
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
+    // TODO [LAB3-03]: Replace x-requester-id header parsing with authenticated JWT/Session context (Issue #3)
+    const requesterId = getRequesterUserId(req);
+    if (requesterId === null) {
       return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
     }
 
@@ -204,22 +221,26 @@ router.get("/:id", async (req: Request, res: Response) => {
     }
 
     const prisma = getPrisma();
-    const ticket = await prisma.ticket.findUnique({
+    const rawTicket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
         category: true,
         relatedSystem: true,
-        requesterUser: true,
+        requester: true,
         attachments: true
       }
     });
+    // Alias requesterId as requesterUserId for backward-compat with Lab 2 clients.
+    // Falls back to existing requesterUserId when mocked objects don't have requesterId.
+    const ticket = rawTicket ? { ...rawTicket, requesterUserId: (rawTicket as any).requesterId ?? (rawTicket as any).requesterUserId } : null;
 
     if (!ticket) {
       return res.status(404).json({ error: "Ticket not found" });
     }
 
-    if (ticket.requesterUserId !== Number(requesterId)) {
-      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
+    if (ticket.requesterUserId !== requesterId) {
+      return res.status(404).json({ error: "Ticket not found" });
     }
 
     res.status(200).json(ticket);
@@ -241,8 +262,9 @@ router.post("/:id/attachments", (req, res, next) => {
   });
 }, async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
+    // TODO [LAB3-03]: Replace x-requester-id header parsing with authenticated JWT/Session context (Issue #3)
+    const requesterId = getRequesterUserId(req);
+    if (requesterId === null) {
       return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
     }
 
@@ -256,17 +278,19 @@ router.post("/:id/attachments", (req, res, next) => {
     }
 
     const prisma = getPrisma();
-    const ticket = await prisma.ticket.findUnique({
+    const rawTicket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: { attachments: { where: { isRemoved: false } } }
     });
+    const ticket = rawTicket ? { ...rawTicket, requesterUserId: (rawTicket as any).requesterId ?? (rawTicket as any).requesterUserId } : null;
 
     if (!ticket) {
       return res.status(404).json({ error: "Ticket not found" });
     }
 
-    if (ticket.requesterUserId !== Number(requesterId)) {
-      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
+    if (ticket.requesterUserId !== requesterId) {
+      return res.status(404).json({ error: "Ticket not found" });
     }
 
     if (ticket.attachments.length >= 5) {
@@ -292,4 +316,3 @@ router.post("/:id/attachments", (req, res, next) => {
 });
 
 export default router;
-

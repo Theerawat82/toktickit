@@ -1,4 +1,5 @@
 import { getPrisma } from "../src/prisma.js";
+import bcrypt from "bcryptjs";
 
 const prisma = getPrisma();
 
@@ -40,26 +41,125 @@ async function main() {
   }
   console.log(`Seeded ${relatedSystems.length} related systems successfully.`);
 
-  // 3. Seed Requester Users (4 Active, 1 Inactive)
-  const requesters = [
-    { name: "Alice Johnson", email: "alice@example.com", isActive: true },
-    { name: "Bob Smith", email: "bob@example.com", isActive: true },
-    { name: "Charlie Davis", email: "charlie@example.com", isActive: true },
-    { name: "Diana Prince", email: "diana@example.com", isActive: true },
-    { name: "Evan Wright", email: "evan@example.com", isActive: false },
+  // 3. Seed Users
+  const passwordHash = await bcrypt.hash("Password123!", 10);
+
+  const users = [
+    {
+      email: "admin@toktickit.com",
+      name: "Admin User",
+      password: passwordHash,
+      role: "Administrator",
+      mustChangePassword: false,
+    },
+    {
+      email: "staff1@toktickit.com",
+      name: "IT Staff 1",
+      password: passwordHash,
+      role: "IT_Staff",
+      mustChangePassword: false,
+    },
+    {
+      email: "staff2@toktickit.com",
+      name: "IT Staff 2",
+      password: passwordHash,
+      role: "IT_Staff",
+      mustChangePassword: false,
+    },
+    {
+      email: "user1@toktickit.com",
+      name: "Requester 1",
+      password: passwordHash,
+      role: "Requester",
+      mustChangePassword: false,
+    },
+    {
+      email: "newstaff@toktickit.com",
+      name: "New Temp Staff",
+      password: passwordHash,
+      role: "IT_Staff",
+      mustChangePassword: true,
+    }
   ];
 
-  for (const requester of requesters) {
-    await prisma.requesterUser.upsert({
-      where: { email: requester.email },
-      update: { name: requester.name, isActive: requester.isActive },
-      create: requester,
+  for (const u of users) {
+    await prisma.user.upsert({
+      where: { email: u.email },
+      update: {},
+      create: {
+        email: u.email,
+        name: u.name,
+        password: u.password,
+        role: u.role as any,
+        mustChangePassword: u.mustChangePassword,
+      },
     });
   }
+  console.log(`Seeded ${users.length} users successfully.`);
 
-  const activeCount = requesters.filter((r) => r.isActive).length;
-  const inactiveCount = requesters.filter((r) => !r.isActive).length;
-  console.log(`Seeded ${requesters.length} requester users (${activeCount} active, ${inactiveCount} inactive) successfully.`);
+  // Get some referenced IDs
+  const admin = await prisma.user.findUnique({ where: { email: "admin@toktickit.com" } });
+  const staff1 = await prisma.user.findUnique({ where: { email: "staff1@toktickit.com" } });
+  const user1 = await prisma.user.findUnique({ where: { email: "user1@toktickit.com" } });
+  
+  const category1 = await prisma.category.findFirst();
+  const system1 = await prisma.relatedSystem.findFirst();
+
+  if (admin && staff1 && user1 && category1 && system1) {
+    // 4. Seed Tickets
+    const ticket1 = await prisma.ticket.upsert({
+      where: { ticketNumber: "TKT-001" },
+      update: {},
+      create: {
+        ticketNumber: "TKT-001",
+        summary: "Login issue",
+        description: "Cannot login to the system",
+        requestedPriority: "High",
+        requesterId: user1.id,
+        categoryId: category1.id,
+        relatedSystemId: system1.id,
+        itPriority: "High",
+        status: "Open",
+        ticketOwnerId: staff1.id,
+      },
+    });
+
+    const ticket2 = await prisma.ticket.upsert({
+      where: { ticketNumber: "TKT-002" },
+      update: {},
+      create: {
+        ticketNumber: "TKT-002",
+        summary: "Printer not working",
+        description: "Paper jam in main office printer",
+        requestedPriority: "Low",
+        requesterId: user1.id,
+        categoryId: category1.id,
+        relatedSystemId: system1.id,
+        itPriority: "Low",
+        status: "New",
+      },
+    });
+    
+    console.log("Seeded sample tickets successfully.");
+
+    // 5. Seed Comments and Notes
+    await prisma.comment.create({
+      data: {
+        ticketId: ticket1.id,
+        authorId: user1.id,
+        content: "Still waiting for an update on this.",
+      }
+    });
+
+    await prisma.internalNote.create({
+      data: {
+        ticketId: ticket1.id,
+        authorId: staff1.id,
+        content: "Checking the AD logs for this user.",
+      }
+    });
+    console.log("Seeded sample comments and internal notes successfully.");
+  }
 }
 
 main()

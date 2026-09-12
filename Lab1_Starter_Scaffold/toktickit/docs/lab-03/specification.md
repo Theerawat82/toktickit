@@ -102,13 +102,29 @@ A migration script will be required to seed initial admin accounts and transform
   * `GET/POST /api/tickets/:id/internal-notes` (Accessible by Staff/Admin ONLY)
 * **Admin Management**: `/api/admin/users` (CRUD operations, Reset Pass, Requires Admin)
 
-## 7. Data Design Decisions & Indexes Justification
+## 7. Data Design Decisions, Indexes & Migration Strategy Justification
 
-* **`User(email)`**: Unique index. Critical for fast login lookups and preventing duplicate accounts.
-* **`User(role)`**, **`User(isActive)`**: Standard indexes to optimize filtering in the Admin User Management grid.
-* **`Ticket(ticketOwnerId)`**: Index to optimize the "My Assigned Tickets" queue view for IT Staff.
-* **`Ticket(currentStatus)`**, **`Ticket(itPriority)`**: Indexes to optimize the heavy filtering and sorting executed on the IT Staff Ticket Queue.
-* **`Comment(ticketId)`**, **`InternalNote(ticketId)`**: Indexes to ensure rapid retrieval of conversation threads when loading ticket details.
+### 7.1 Foreign Key Relationships (FKs)
+* **`Ticket.requesterId` -> `User.id`**: Mandatory relationship mapping ticket ownership to an active user (`onDelete: Restrict`).
+* **`Ticket.ticketOwnerId` -> `User.id`**: Optional reference mapping assigned IT Staff or Administrator (`onDelete: SetNull`).
+* **`Comment.ticketId` -> `Ticket.id` & `Comment.authorId` -> `User.id`**: Public comment threads linked to tickets and authors (`onDelete: Cascade` on ticket deletion).
+* **`InternalNote.ticketId` -> `Ticket.id` & `InternalNote.authorId` -> `User.id`**: Staff-only internal notes linked to tickets and authors (`onDelete: Cascade` on ticket deletion).
+
+### 7.2 Database Indexes Justification
+* **`User(email)`**: Unique index for fast authentication lookups and duplicate account prevention.
+* **`User(role)`**, **`User(isActive)`**: Performance optimization for filtered user list queries in Admin User Management.
+* **`Ticket(requesterId)`**: Index optimizing "My Tickets" queries for Requesters.
+* **`Ticket(ticketOwnerId)`**: Index optimizing "My Assigned Tickets" queue views for IT Staff.
+* **`Ticket(currentStatus)`**, **`Ticket(itPriority)`**: Indexes supporting multi-column filtering and sorting on the IT Staff Ticket Queue.
+* **`Comment(ticketId)`**, **`InternalNote(ticketId)`**: Indexes ensuring fast retrieval of conversation and note threads when loading ticket detail views.
+
+### 7.3 Data Migration Strategy (Zero-Data-Loss Backfill)
+To transition from Lab 2 to Lab 3 without breaking existing legacy data or foreign key constraints:
+1. **Fallback User Creation**: Insert a default legacy user (`default_requester@toktickit.com`) with role `Requester`.
+2. **Nullable Column Addition**: Temporarily add `requesterId` as a nullable column to the `Ticket` table.
+3. **Legacy Data Backfill**: Run SQL `UPDATE` statement to associate all 21 pre-existing Lab 2 tickets with the fallback user ID.
+4. **Constraint Enforcement**: Alter `requesterId` to `NOT NULL` and establish Foreign Key constraints and indexes.
+5. **Idempotent Seeding**: Run `prisma/seed.ts` using `upsert` operations to populate Lab 3 accounts and sample data without corrupting or duplicating legacy records.
 
 ## 8. Acceptance Criteria (AC)
 

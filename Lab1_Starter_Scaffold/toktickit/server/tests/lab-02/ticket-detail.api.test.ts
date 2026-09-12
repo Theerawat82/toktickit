@@ -44,7 +44,7 @@ describe("GET /api/tickets/:id", () => {
     expect(res.body.error).toContain("not found");
   });
 
-  it("should return 403 when user does not own the ticket", async () => {
+  it("should return 404 when user does not own the ticket", async () => {
     (getPrisma as any).mockReturnValue({
       ticket: {
         findUnique: vi.fn().mockResolvedValue(mockTicket),
@@ -55,8 +55,8 @@ describe("GET /api/tickets/:id", () => {
       .get("/api/tickets/1")
       .set("x-requester-id", "2"); // Different requester ID
     
-    expect(res.status).toBe(403);
-    expect(res.body.error).toContain("Forbidden");
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain("not found");
   });
 
   it("should return 200 and ticket details when user owns the ticket", async () => {
