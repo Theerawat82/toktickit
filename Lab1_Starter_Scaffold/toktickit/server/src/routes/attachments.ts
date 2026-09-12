@@ -28,7 +28,8 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
-    if (attachment.ticket.requesterUserId !== Number(requesterId)) {
+    if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
+        (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
       return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
     }
 
@@ -67,7 +68,8 @@ router.get("/:id/download", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
-    if (attachment.ticket.requesterUserId !== Number(requesterId)) {
+    if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
+        (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
       return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
     }
 
@@ -116,7 +118,8 @@ router.post("/:id/remove", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
-    if (attachment.ticket.requesterUserId !== Number(requesterId)) {
+    if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
+        (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
       return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
     }
 

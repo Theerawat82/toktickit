@@ -59,7 +59,7 @@ router.post("/", async (req: Request, res: Response) => {
     const [category, system, requester] = await Promise.all([
       prisma.category.findUnique({ where: { id: Number(categoryId) } }),
       prisma.relatedSystem.findUnique({ where: { id: Number(systemId) } }),
-      prisma.requesterUser.findUnique({ where: { id: Number(requesterId) } })
+      prisma.user.findUnique({ where: { id: Number(requesterId), role: "Requester" } as any })
     ]);
 
     if (!category) return res.status(400).json({ error: "Invalid categoryId" });
@@ -74,7 +74,7 @@ router.post("/", async (req: Request, res: Response) => {
       const nextId = lastTicket ? lastTicket.id + 1 : 1;
       const ticketNumber = "TIK-" + String(nextId).padStart(5, "0");
 
-      return await tx.ticket.create({
+      const created = await tx.ticket.create({
         data: {
           ticketNumber,
           summary,
@@ -83,9 +83,11 @@ router.post("/", async (req: Request, res: Response) => {
           currentStatus: "New",
           categoryId: Number(categoryId),
           relatedSystemId: Number(systemId),
-          requesterUserId: Number(requesterId),
+          requesterId: Number(requesterId),
         }
       });
+      // Alias requesterId as requesterUserId for backward-compat with Lab 2 clients
+      return { ...created, requesterUserId: created.requesterId };
     });
 
     res.status(201).json(ticket);
@@ -119,7 +121,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     // Strict requester ownership isolation
     const whereClause: any = {
-      requesterUserId: Number(requesterId)
+      requesterId: Number(requesterId)
     };
 
     // Case-insensitive partial match on ticketNumber and summary
@@ -158,7 +160,7 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     const prisma = getPrisma();
-    const [totalTickets, tickets] = await prisma.$transaction([
+    const [totalTickets, rawTickets] = await prisma.$transaction([
       prisma.ticket.count({ where: whereClause }),
       prisma.ticket.findMany({
         where: whereClause,
@@ -167,10 +169,12 @@ router.get("/", async (req: Request, res: Response) => {
         take: limitNum,
         include: {
           category: true,
-          requesterUser: true
+          requester: true
         }
       })
     ]);
+    // Alias requesterId as requesterUserId for backward-compat with Lab 2 clients
+    const tickets = rawTickets.map((t: any) => ({ ...t, requesterUserId: t.requesterId }));
 
     const totalPages = Math.ceil(totalTickets / limitNum);
 
@@ -204,21 +208,24 @@ router.get("/:id", async (req: Request, res: Response) => {
     }
 
     const prisma = getPrisma();
-    const ticket = await prisma.ticket.findUnique({
+    const rawTicket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
         category: true,
         relatedSystem: true,
-        requesterUser: true,
+        requester: true,
         attachments: true
       }
     });
+    // Alias requesterId as requesterUserId for backward-compat with Lab 2 clients
+    // Falls back to existing requesterUserId when mocked objects don't have requesterId
+    const ticket = rawTicket ? { ...rawTicket, requesterUserId: (rawTicket as any).requesterId ?? (rawTicket as any).requesterUserId } : null;
 
     if (!ticket) {
       return res.status(404).json({ error: "Ticket not found" });
     }
 
-    if (ticket.requesterUserId !== Number(requesterId)) {
+    if (ticket!.requesterUserId !== Number(requesterId)) {
       return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
     }
 
@@ -256,16 +263,17 @@ router.post("/:id/attachments", (req, res, next) => {
     }
 
     const prisma = getPrisma();
-    const ticket = await prisma.ticket.findUnique({
+    const rawTicket2 = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: { attachments: { where: { isRemoved: false } } }
     });
+    const ticket = rawTicket2 ? { ...rawTicket2, requesterUserId: (rawTicket2 as any).requesterId ?? (rawTicket2 as any).requesterUserId } : null;
 
     if (!ticket) {
       return res.status(404).json({ error: "Ticket not found" });
     }
 
-    if (ticket.requesterUserId !== Number(requesterId)) {
+    if (ticket!.requesterUserId !== Number(requesterId)) {
       return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
     }
 
