@@ -3,15 +3,16 @@ import { getPrisma } from "../prisma.js";
 import path from "path";
 import fs from "fs";
 
+import { authenticateToken, enforcePasswordChange } from "../middleware/auth.js";
+
 const router = Router();
+router.use(authenticateToken);
+router.use(enforcePasswordChange);
 
 // GET /api/attachments/:id (Metadata)
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
     if (isNaN(attachmentId)) {
@@ -49,10 +50,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 // GET /api/attachments/:id/download
 router.get("/:id/download", async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
     if (isNaN(attachmentId)) {
@@ -95,10 +93,7 @@ router.get("/:id/download", async (req: Request, res: Response) => {
 // POST /api/attachments/:id/remove
 router.post("/:id/remove", async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
     if (isNaN(attachmentId)) {

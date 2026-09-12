@@ -1,4 +1,23 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
+export async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(options.headers);
+  const token = localStorage.getItem("token");
+  
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  // Set default content type for JSON if body is provided and not FormData
+  if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  return fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+}
 
 export interface Category {
   id: number;
@@ -17,7 +36,7 @@ export interface SystemStatus {
 // Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem(): Promise<SystemStatus> {
   try {
-    const healthRes = await fetch(`${API_URL}/api/health`);
+    const healthRes = await apiFetch(`/api/health`);
     if (!healthRes.ok) {
       throw new Error("Backend is offline");
     }
@@ -27,7 +46,7 @@ export async function checkSystem(): Promise<SystemStatus> {
       throw new Error("Unexpected service name from backend");
     }
 
-    const categoriesRes = await fetch(`${API_URL}/api/categories`);
+    const categoriesRes = await apiFetch(`/api/categories`);
     if (!categoriesRes.ok) {
       throw new Error("Failed to fetch categories");
     }
@@ -83,8 +102,7 @@ export interface TicketFilterParams {
 }
 
 export async function fetchTickets(
-  params: TicketFilterParams,
-  requesterId: number
+  params: TicketFilterParams
 ): Promise<TicketListResponse> {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);
@@ -95,9 +113,7 @@ export async function fetchTickets(
   query.set("page", String(params.page ?? 1));
   query.set("limit", String(params.limit ?? 8));
 
-  const res = await fetch(`/api/tickets?${query.toString()}`, {
-    headers: { "x-requester-id": String(requesterId) }
-  });
+  const res = await apiFetch(`/api/tickets?${query.toString()}`);
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));

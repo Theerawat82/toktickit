@@ -2,17 +2,22 @@ import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import MyTickets from "../../components/MyTickets.js";
-import { RequesterContext } from "../../context/RequesterContext.js";
+import MyTickets from "../../components/MyTickets";
+
+// ── Mock apiFetch ──
+const apiFetchMock = vi.fn();
+vi.mock("../../api", () => ({
+  apiFetch: (...args: any[]) => apiFetchMock(...args),
+}));
+
+// ── Mock useAuth – every test gets an authenticated Requester ──
+const mockUser = { id: 1, role: "Requester", name: "Alice Johnson", email: "alice@example.com", mustChangePassword: false };
+const mockAuth = { user: mockUser, loading: false, logout: vi.fn() };
+vi.mock("../../context/AuthContext", () => ({
+  useAuth: () => mockAuth,
+}));
 
 // ── Helpers ──
-
-const mockRequester = {
-  id: 1,
-  name: "Alice Johnson",
-  email: "alice@example.com",
-  isActive: true,
-};
 
 const mockCategories = [
   { id: 1, name: "Hardware" },
@@ -52,77 +57,55 @@ function buildResponse(data: any[], total?: number) {
   const totalTickets = total ?? data.length;
   return {
     data,
-    meta: { totalTickets, page: 1, totalPages: Math.ceil(totalTickets / 8), limit: 8 },
+    meta: { totalTickets, page: 1, totalPages: Math.ceil(totalTickets / 8) || 1, limit: 8 },
   };
 }
 
-const renderWithContext = (
-  ui: React.ReactElement,
-  activeRequester: any = null
-) => {
-  return render(
-    <RequesterContext.Provider
-      value={{
-        activeRequester,
-        requesters: [mockRequester],
-        setActiveRequester: vi.fn(),
-        loading: false,
-        error: "",
-        refetch: vi.fn(),
-      } as any}
-    >
-      {ui}
-    </RequesterContext.Provider>
-  );
-};
+/**
+ * Default apiFetch stub: categories → mockCategories, tickets → given payload.
+ */
+function setupApiFetch(ticketPayload: any = buildResponse(mockTickets)) {
+  apiFetchMock.mockImplementation((url: string) => {
+    if (url.includes("/api/categories")) {
+      return Promise.resolve({ ok: true, json: async () => mockCategories });
+    }
+    // tickets endpoint
+    return Promise.resolve({ ok: true, json: async () => ticketPayload });
+  });
+}
 
 // ── Tests ──
 
 describe("MyTickets Component", () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    apiFetchMock.mockReset();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("should not render if there is no active requester", () => {
-    renderWithContext(<MyTickets />);
-    expect(screen.queryByTestId("my-tickets")).not.toBeInTheDocument();
-  });
-
   it("should show loading state initially", async () => {
-    // Mock fetch that never resolves during the check
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+    apiFetchMock.mockImplementation((url: string) => {
       if (url.includes("/api/categories")) {
         return Promise.resolve({ ok: true, json: async () => mockCategories });
       }
-      // Delay the tickets response
-      return new Promise(() => {}); // never resolves
-    }) as any;
+      // Delay the tickets response – never resolves
+      return new Promise(() => {});
+    });
 
-    renderWithContext(<MyTickets />, mockRequester);
+    render(<MyTickets />);
     expect(screen.getByTestId("loading-state")).toBeInTheDocument();
     expect(screen.getByText("Loading tickets...")).toBeInTheDocument();
   });
 
   it("should render ticket table when data is loaded", async () => {
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/api/categories")) {
-        return Promise.resolve({ ok: true, json: async () => mockCategories });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => buildResponse(mockTickets),
-      });
-    }) as any;
-
-    renderWithContext(<MyTickets />, mockRequester);
+    setupApiFetch();
+    render(<MyTickets />);
 
     await waitFor(() => {
       expect(screen.getByTestId("desktop-table")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
     expect(screen.getAllByText("TIK-00001").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("TIK-00002").length).toBeGreaterThanOrEqual(1);
@@ -131,21 +114,12 @@ describe("MyTickets Component", () => {
   });
 
   it("should display empty state when requester has no tickets", async () => {
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/api/categories")) {
-        return Promise.resolve({ ok: true, json: async () => mockCategories });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => buildResponse([]),
-      });
-    }) as any;
-
-    renderWithContext(<MyTickets />, mockRequester);
+    setupApiFetch(buildResponse([]));
+    render(<MyTickets />);
 
     await waitFor(() => {
       expect(screen.getByTestId("empty-state")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
     expect(screen.getByText("No tickets yet")).toBeInTheDocument();
     expect(screen.getByText("+ Create Your First Ticket")).toBeInTheDocument();
@@ -153,59 +127,40 @@ describe("MyTickets Component", () => {
 
   it("should display no-results state when filters yield zero", async () => {
     let callCount = 0;
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
+    apiFetchMock.mockImplementation((url: string) => {
       if (url.includes("/api/categories")) {
         return Promise.resolve({ ok: true, json: async () => mockCategories });
       }
       callCount++;
-      // First call: return some tickets so hasEverLoaded becomes true
       if (callCount === 1) {
-        return Promise.resolve({
-          ok: true,
-          json: async () => buildResponse(mockTickets),
-        });
+        return Promise.resolve({ ok: true, json: async () => buildResponse(mockTickets) });
       }
-      // Subsequent calls (after filter change): return empty
-      return Promise.resolve({
-        ok: true,
-        json: async () => buildResponse([]),
-      });
-    }) as any;
-
-    renderWithContext(<MyTickets />, mockRequester);
-
-    // Wait for initial load
-    await waitFor(() => {
-      expect(screen.getByTestId("desktop-table")).toBeInTheDocument();
+      return Promise.resolve({ ok: true, json: async () => buildResponse([]) });
     });
 
-    // Trigger a filter change to produce no results
+    render(<MyTickets />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("desktop-table")).toBeInTheDocument();
+    }, { timeout: 3000 });
+
     const searchInput = screen.getByTestId("search-input");
     await userEvent.type(searchInput, "nonexistent-xyz");
 
     await waitFor(() => {
       expect(screen.getByTestId("no-results-state")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
     expect(screen.getByText("No matching tickets")).toBeInTheDocument();
   });
 
   it("should render filter controls", async () => {
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/api/categories")) {
-        return Promise.resolve({ ok: true, json: async () => mockCategories });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => buildResponse(mockTickets),
-      });
-    }) as any;
-
-    renderWithContext(<MyTickets />, mockRequester);
+    setupApiFetch();
+    render(<MyTickets />);
 
     await waitFor(() => {
       expect(screen.getByTestId("filter-controls")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
     expect(screen.getByTestId("search-input")).toBeInTheDocument();
     expect(screen.getByTestId("filter-category")).toBeInTheDocument();
@@ -218,21 +173,12 @@ describe("MyTickets Component", () => {
     const lotsOfTickets = buildResponse(mockTickets, 20);
     lotsOfTickets.meta.totalPages = 3;
 
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/api/categories")) {
-        return Promise.resolve({ ok: true, json: async () => mockCategories });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => lotsOfTickets,
-      });
-    }) as any;
-
-    renderWithContext(<MyTickets />, mockRequester);
+    setupApiFetch(lotsOfTickets);
+    render(<MyTickets />);
 
     await waitFor(() => {
       expect(screen.getByTestId("pagination-bar")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
     expect(screen.getByTestId("pagination-info")).toHaveTextContent("Showing 1 to 8 of 20 tickets");
     expect(screen.getByTestId("prev-page-btn")).toBeDisabled();
@@ -240,31 +186,20 @@ describe("MyTickets Component", () => {
   });
 
   it("should show Clear Filters button in header when filters are active", async () => {
-    globalThis.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/api/categories")) {
-        return Promise.resolve({ ok: true, json: async () => mockCategories });
-      }
-      return Promise.resolve({
-        ok: true,
-        json: async () => buildResponse(mockTickets),
-      });
-    }) as any;
-
-    renderWithContext(<MyTickets />, mockRequester);
+    setupApiFetch();
+    render(<MyTickets />);
 
     await waitFor(() => {
       expect(screen.getByTestId("desktop-table")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
-    // Initially no clear filters button
     expect(screen.queryByTestId("clear-filters-btn")).not.toBeInTheDocument();
 
-    // Type into search
     const searchInput = screen.getByTestId("search-input");
     await userEvent.type(searchInput, "test");
 
     await waitFor(() => {
       expect(screen.getByTestId("clear-filters-btn")).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
   });
 });

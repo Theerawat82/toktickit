@@ -79,18 +79,33 @@ async function main() {
       password: passwordHash,
       role: "IT_Staff",
       mustChangePassword: true,
+    },
+    {
+      email: "inactive@toktickit.com",
+      name: "Inactive User",
+      password: passwordHash,
+      role: "Requester",
+      isActive: false,
+      mustChangePassword: false,
     }
   ];
 
   for (const u of users) {
     await prisma.user.upsert({
       where: { email: u.email },
-      update: {},
+      update: {
+        name: u.name,
+        password: u.password,
+        role: u.role as any,
+        isActive: u.isActive ?? true,
+        mustChangePassword: u.mustChangePassword,
+      },
       create: {
         email: u.email,
         name: u.name,
         password: u.password,
         role: u.role as any,
+        isActive: u.isActive ?? true,
         mustChangePassword: u.mustChangePassword,
       },
     });

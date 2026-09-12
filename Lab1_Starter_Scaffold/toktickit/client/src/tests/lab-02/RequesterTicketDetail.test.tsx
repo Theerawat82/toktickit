@@ -2,6 +2,15 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import RequesterTicketDetail from "../../components/RequesterTicketDetail.js";
+
+vi.mock("../../context/AuthContext.js", () => ({
+  useAuth: () => ({
+    user: { id: 1, role: "Requester", name: "Test User", mustChangePassword: false },
+    loading: false,
+    logout: vi.fn(),
+  }),
+  AuthProvider: ({ children }: any) => <>{children}</>
+}));
 import { RequesterContext } from "../../context/RequesterContext.js";
 
 const renderWithContext = (ui: React.ReactElement, activeRequester: any = null) => {

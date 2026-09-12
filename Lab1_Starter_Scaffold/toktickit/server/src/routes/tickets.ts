@@ -35,18 +35,11 @@ const upload = multer({
 
 const uploadSingle = upload.single("file");
 
-// TODO [LAB3-03]: Replace x-requester-id header parsing with authenticated JWT/Session context (Issue #3)
-// Extracts and validates the requester's user ID from the request.
-// For Lab 2 backward compatibility, reads from the x-requester-id header or req.body.requesterId.
-// Returns a parsed integer ID, or null if missing/invalid.
-function getRequesterUserId(req: Request): number | null {
-  const raw = req.header("x-requester-id") ?? req.body?.requesterId;
-  if (raw === undefined || raw === null || raw === "") return null;
-  const parsed = Number(raw);
-  return isNaN(parsed) ? null : parsed;
-}
+import { authenticateToken, enforcePasswordChange } from "../middleware/auth.js";
 
 const router = Router();
+router.use(authenticateToken);
+router.use(enforcePasswordChange);
 
 // POST /api/tickets
 router.post("/", async (req: Request, res: Response) => {
@@ -60,9 +53,12 @@ router.post("/", async (req: Request, res: Response) => {
     if (!description || typeof description !== 'string' || description.length < 20) {
       return res.status(400).json({ error: "Description must be provided and be at least 20 characters long" });
     }
-    if (!categoryId || !systemId || !requestedPriority || !requesterId) {
+    if (!categoryId || !systemId || !requestedPriority) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+
+    // Use req.user.id from JWT or fallback session instead of payload requesterId
+    const actualRequesterId = req.user.id;
 
     const prisma = getPrisma();
 
@@ -70,7 +66,7 @@ router.post("/", async (req: Request, res: Response) => {
     const [category, system, requester] = await Promise.all([
       prisma.category.findUnique({ where: { id: Number(categoryId) } }),
       prisma.relatedSystem.findUnique({ where: { id: Number(systemId) } }),
-      prisma.user.findUnique({ where: { id: Number(requesterId), role: "Requester" } as any })
+      prisma.user.findUnique({ where: { id: actualRequesterId, role: "Requester" } as any })
     ]);
 
     if (!category) return res.status(400).json({ error: "Invalid categoryId" });
@@ -94,7 +90,7 @@ router.post("/", async (req: Request, res: Response) => {
           currentStatus: "New",
           categoryId: Number(categoryId),
           relatedSystemId: Number(systemId),
-          requesterId: Number(requesterId),
+          requesterId: actualRequesterId,
         }
       });
       // Alias requesterId as requesterUserId for backward-compat with Lab 2 clients
@@ -111,11 +107,7 @@ router.post("/", async (req: Request, res: Response) => {
 // GET /api/tickets
 router.get("/", async (req: Request, res: Response) => {
   try {
-    // TODO [LAB3-03]: Replace x-requester-id header parsing with authenticated JWT/Session context (Issue #3)
-    const requesterId = getRequesterUserId(req);
-    if (requesterId === null) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const {
       search,
@@ -209,11 +201,7 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /api/tickets/:id
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    // TODO [LAB3-03]: Replace x-requester-id header parsing with authenticated JWT/Session context (Issue #3)
-    const requesterId = getRequesterUserId(req);
-    if (requesterId === null) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const ticketId = Number(req.params.id);
     if (isNaN(ticketId)) {
@@ -262,11 +250,7 @@ router.post("/:id/attachments", (req, res, next) => {
   });
 }, async (req: Request, res: Response) => {
   try {
-    // TODO [LAB3-03]: Replace x-requester-id header parsing with authenticated JWT/Session context (Issue #3)
-    const requesterId = getRequesterUserId(req);
-    if (requesterId === null) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const ticketId = Number(req.params.id);
     if (isNaN(ticketId)) {

@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
-import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
+import { apiFetch } from "../api.js";
 
 const ZEN = {
   primary: "#006B3C",
@@ -28,7 +29,7 @@ interface AttachmentSectionProps {
 }
 
 export default function AttachmentSection({ ticketId, attachments, onAttachmentUpdated }: AttachmentSectionProps) {
-  const { activeRequester } = useRequester();
+  const { user } = useAuth();
   
   // Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,9 +81,8 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
     formData.append("file", file);
 
     try {
-      const res = await fetch(`/api/tickets/${ticketId}/attachments`, {
+      const res = await apiFetch(`/api/tickets/${ticketId}/attachments`, {
         method: "POST",
-        headers: { "x-requester-id": String(activeRequester?.id) },
         body: formData,
       });
 
@@ -117,12 +117,8 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
     }
 
     try {
-      const res = await fetch(`/api/attachments/${removingId}/remove`, {
+      const res = await apiFetch(`/api/attachments/${removingId}/remove`, {
         method: "POST",
-        headers: { 
-          "x-requester-id": String(activeRequester?.id),
-          "Content-Type": "application/json"
-        },
         body: JSON.stringify({ removalReason }),
       });
 
@@ -140,11 +136,8 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
 
   const downloadAttachment = async (attachment: Attachment) => {
     try {
-      const res = await fetch(`/api/attachments/${attachment.id}/download`, {
+      const res = await apiFetch(`/api/attachments/${attachment.id}/download`, {
         method: "GET",
-        headers: {
-          "x-requester-id": String(activeRequester?.id || "1"),
-        },
       });
 
       if (!res.ok) {

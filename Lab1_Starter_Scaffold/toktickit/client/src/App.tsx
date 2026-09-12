@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
-import { RequesterProvider } from "./context/RequesterContext.js";
-import RequesterSelector from "./components/RequesterSelector.js";
+import { useAuth } from "./context/AuthContext.js";
+import Login from "./components/Login.js";
+import ChangePassword from "./components/ChangePassword.js";
 import CreateTicket from "./components/CreateTicket.js";
 import MyTickets from "./components/MyTickets.js";
 import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
@@ -9,6 +10,7 @@ import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
 type UiState = "idle" | "loading" | "success" | "error";
 
 export default function App() {
+  const { user, loading: authLoading, logout } = useAuth();
   const [state, setState] = useState<UiState>("idle");
   const [categories, setCategories] = useState<Category[]>([]);
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -28,8 +30,6 @@ export default function App() {
     setCategories([]);
     setErrorMsg("");
     try {
-      // ⏳ Race the real fetch against a 700 ms minimum delay so the loading
-      //    state is always visible long enough to screenshot for grading.
       const [status] = await Promise.all([
         checkSystem(),
         new Promise<void>((res) => setTimeout(res, 700)),
@@ -44,107 +44,112 @@ export default function App() {
     }
   }, []);
 
-  return (
-    <RequesterProvider>
-      <div className="container py-5" style={{ maxWidth: 640 }}>
-
-        {/* ── Heading ── */}
-        <h1 className="h3 mb-1">
-          TokTickIT{" "}
-          <span className="text-success">IT Service Desk</span>
-        </h1>
-        <p className="text-muted mb-3">IT Support Request System</p>
-
-        {/* ── Requester Selector (Issue 3 / LAB2-03) ── */}
-        <div className="card mb-4" style={{ borderColor: "#006B3C" }}>
-          <div
-            className="card-header text-white d-flex align-items-center gap-2"
-            style={{ backgroundColor: "#006B3C" }}
-          >
-            <span role="img" aria-label="person">👤</span>
-            <strong>Development Requester Context</strong>
-          </div>
-          <div className="card-body">
-            <RequesterSelector />
-          </div>
+  if (authLoading) {
+    return (
+      <div className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
-
-        {ticketId ? (
-          <RequesterTicketDetail ticketId={ticketId} />
-        ) : (
-          <>
-            {/* ── Create Ticket Form (Issue 12 / LAB2-04) ── */}
-            <CreateTicket />
-
-            {/* ── My Tickets List (Issue 5 / LAB2-05) ── */}
-            <MyTickets />
-          </>
-        )}
-
-        <hr className="my-4" />
-
-        {/* ── [Check System] button ──
-             Always rendered; disabled while loading prevents double-clicks. */}
-        <button
-          className="btn btn-primary mb-3"
-          onClick={loadData}
-          disabled={state === "loading"}
-        >
-          [Check System]
-        </button>
-
-        {/* ── Loading state ── */}
-        {state === "loading" && (
-          <div className="alert alert-info d-flex align-items-center gap-2">
-            <span role="img" aria-label="hourglass">⏳</span>
-            <strong>Loading...</strong>
-          </div>
-        )}
-
-        {/* ── Error / Offline state ── */}
-        {state === "error" && (
-          <div className="alert alert-danger">
-            <h5 className="alert-heading mb-1">
-              ❌ System Status: Offline
-            </h5>
-            <hr className="my-2" />
-            {/* ↓ text required by Vitest test 3 */}
-            <p className="mb-1">
-              The backend API is currently unavailable. Please try again later.
-            </p>
-            <p className="mb-0">
-              <small className="text-danger-emphasis">
-                Unable to connect to TokTickIT API
-                {errorMsg ? ` — ${errorMsg}` : ""}
-              </small>
-            </p>
-          </div>
-        )}
-
-        {/* ── Success / Online state ── */}
-        {state === "success" && (
-          <div className="card border-success">
-            <div className="card-header bg-success text-white d-flex align-items-center gap-2">
-              <span role="img" aria-label="check">✅</span>
-              <strong>System Status: Online</strong>
-            </div>
-            <div className="card-body">
-              {/* ↓ text required by Vitest test 2 */}
-              <p className="text-muted small mb-3">Connected to TokTickIT API!</p>
-
-              <h6 className="fw-semibold mb-2">Supported Request Categories</h6>
-              <ul className="list-group list-group-flush">
-                {categories.map((c) => (
-                  <li key={c.id} className="list-group-item px-0">
-                    {c.name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
       </div>
-    </RequesterProvider>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container py-5" style={{ maxWidth: 640 }}>
+        <h1 className="h3 mb-4 text-center">
+          TokTickIT <span className="text-success">IT Service Desk</span>
+        </h1>
+        <Login />
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-5" style={{ maxWidth: 640 }}>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 className="h3 mb-1">
+            TokTickIT <span className="text-success">IT Service Desk</span>
+          </h1>
+          <p className="text-muted mb-0">IT Support Request System</p>
+        </div>
+        <div className="text-end">
+          <div className="fw-bold">{user.name}</div>
+          <div className="small text-muted mb-2">{user.role}</div>
+          <button className="btn btn-sm btn-outline-danger" onClick={logout}>
+            Logout
+          </button>
+        </div>
+      </div>
+
+      {user.mustChangePassword ? (
+        <ChangePassword />
+      ) : (
+        <>
+          {ticketId ? (
+            <RequesterTicketDetail ticketId={ticketId} />
+          ) : (
+            <>
+              <CreateTicket />
+              <MyTickets />
+            </>
+          )}
+
+          <hr className="my-4" />
+
+          <button
+            className="btn btn-primary mb-3"
+            onClick={loadData}
+            disabled={state === "loading"}
+          >
+            [Check System]
+          </button>
+
+          {state === "loading" && (
+            <div className="alert alert-info d-flex align-items-center gap-2">
+              <span role="img" aria-label="hourglass">⏳</span>
+              <strong>Loading...</strong>
+            </div>
+          )}
+
+          {state === "error" && (
+            <div className="alert alert-danger">
+              <h5 className="alert-heading mb-1">❌ System Status: Offline</h5>
+              <hr className="my-2" />
+              <p className="mb-1">
+                The backend API is currently unavailable. Please try again later.
+              </p>
+              <p className="mb-0">
+                <small className="text-danger-emphasis">
+                  Unable to connect to TokTickIT API
+                  {errorMsg ? ` — ${errorMsg}` : ""}
+                </small>
+              </p>
+            </div>
+          )}
+
+          {state === "success" && (
+            <div className="card border-success">
+              <div className="card-header bg-success text-white d-flex align-items-center gap-2">
+                <span role="img" aria-label="check">✅</span>
+                <strong>System Status: Online</strong>
+              </div>
+              <div className="card-body">
+                <p className="text-muted small mb-3">Connected to TokTickIT API!</p>
+                <h6 className="fw-semibold mb-2">Supported Request Categories</h6>
+                <ul className="list-group list-group-flush">
+                  {categories.map((c) => (
+                    <li key={c.id} className="list-group-item px-0">
+                      {c.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

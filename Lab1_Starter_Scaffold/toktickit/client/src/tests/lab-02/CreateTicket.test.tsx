@@ -2,62 +2,45 @@ import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import CreateTicket from "../../components/CreateTicket.js";
-import { RequesterContext } from "../../context/RequesterContext.js";
+import CreateTicket from "../../components/CreateTicket";
 
-// Mock RequesterProvider
-const renderWithContext = (ui: React.ReactElement, activeRequester: any = null) => {
-  return render(
-    <RequesterContext.Provider
-      value={{
-        activeRequester,
-        requesters: [],
-        setActiveRequester: vi.fn(),
-        loading: false,
-        error: "",
-        refetch: vi.fn(),
-      } as any}
-    >
-      {ui}
-    </RequesterContext.Provider>
-  );
-};
+// ── Mock apiFetch ──
+const apiFetchMock = vi.fn();
+vi.mock("../../api", () => ({
+  apiFetch: (...args: any[]) => apiFetchMock(...args),
+}));
 
-const mockRequester = {
-  id: 1,
-  name: "Alice Johnson",
-  email: "alice@example.com",
-  isActive: true,
-};
+// ── Mock useAuth ──
+vi.mock("../../context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: 1, role: "Requester", name: "Alice Johnson", email: "alice@example.com", mustChangePassword: false },
+    loading: false,
+    logout: vi.fn(),
+  }),
+  AuthProvider: ({ children }: any) => <>{children}</>
+}));
 
 describe("CreateTicket Component", () => {
   beforeEach(() => {
-    globalThis.fetch = vi.fn() as any;
+    apiFetchMock.mockReset();
+    apiFetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 1, name: "Test Item" }],
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("should not render if there is no active requester", () => {
-    renderWithContext(<CreateTicket />);
-    expect(screen.queryByTestId("create-ticket-form")).not.toBeInTheDocument();
-  });
-
-  it("should render form correctly when active requester exists", async () => {
-    // Mock the reference data fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [{ id: 1, name: "Test Item" }],
-    }) as any;
-
-    renderWithContext(<CreateTicket />, mockRequester);
+  it("should render form correctly when user exists", async () => {
+    render(<CreateTicket />);
     expect(screen.getByTestId("create-ticket-form")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Alice Johnson (alice@example.com)")).toBeInTheDocument();
   });
 
   it("should show validation errors when fields are empty or invalid", async () => {
-    renderWithContext(<CreateTicket />, mockRequester);
+    render(<CreateTicket />);
 
     const submitBtn = screen.getByTestId("submit-ticket-btn");
     
@@ -70,20 +53,20 @@ describe("CreateTicket Component", () => {
   });
 
   it("should submit successfully when form is valid", async () => {
-    globalThis.fetch = vi.fn((url: string) => {
+    apiFetchMock.mockImplementation((url: string) => {
       if (url === "/api/tickets") {
         return Promise.resolve({
           ok: true,
-          json: async () => ({ ticketNumber: "TIK-00001" }),
+          json: async () => ({ ticketNumber: "TIK-00001", id: 1 }),
         });
       }
       return Promise.resolve({
         ok: true,
         json: async () => [{ id: 1, name: "Test Item" }],
       });
-    }) as any;
+    });
 
-    renderWithContext(<CreateTicket />, mockRequester);
+    render(<CreateTicket />);
 
     const summaryInput = screen.getByTestId("input-summary");
     const descInput = screen.getByTestId("input-description");
