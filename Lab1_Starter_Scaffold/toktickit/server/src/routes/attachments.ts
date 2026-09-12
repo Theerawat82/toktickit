@@ -28,9 +28,10 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
+    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
     if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
         (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
-      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+      return res.status(404).json({ error: "Attachment not found" });
     }
 
     // Even if removed, metadata might be requested by the frontend to show "Removed" state.
@@ -68,9 +69,10 @@ router.get("/:id/download", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
+    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
     if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
         (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
-      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+      return res.status(404).json({ error: "Attachment not found" });
     }
 
     if (attachment.isRemoved) {
@@ -118,9 +120,10 @@ router.post("/:id/remove", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
+    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
     if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
         (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
-      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+      return res.status(404).json({ error: "Attachment not found" });
     }
 
     if (attachment.isRemoved) {
