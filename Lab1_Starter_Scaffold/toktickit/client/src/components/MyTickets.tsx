@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
+import { apiFetch } from "../api.js";
 
 // ── Types ──
 interface Category {
@@ -106,7 +107,7 @@ const PRIORITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
 const STATUS_OPTIONS   = ["New", "Open", "In Progress", "Pending", "Resolved", "Closed"];
 
 export default function MyTickets() {
-  const { activeRequester } = useRequester();
+  const { user } = useAuth();
 
   // ── Filters ──
   const [search, setSearch]                   = useState("");
@@ -130,17 +131,16 @@ export default function MyTickets() {
   // hasEverLoaded distinguishes "never fetched" from "fetched, 0 results"
   const [hasEverLoaded, setHasEverLoaded] = useState(false);
 
-  // ── Fetch categories for the dropdown ──
   useEffect(() => {
-    fetch("/api/categories")
-      .then((r) => (r.ok ? r.json() : []))
+    apiFetch("/api/categories")
+      .then((r) => (r?.ok ? r.json() : []))
       .then(setCategories)
       .catch(() => setCategories([]));
   }, []);
 
   // ── Fetch tickets whenever filters / page / requester change ──
   const loadTickets = useCallback(async () => {
-    if (!activeRequester) return;
+    if (!user) return;
     setLoading(true);
     setErrorMsg("");
     try {
@@ -153,9 +153,7 @@ export default function MyTickets() {
       query.set("page", String(page));
       query.set("limit", String(limit));
 
-      const res = await fetch(`/api/tickets?${query.toString()}`, {
-        headers: { "x-requester-id": String(activeRequester.id) },
-      });
+      const res = await apiFetch(`/api/tickets?${query.toString()}`);
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
@@ -171,7 +169,7 @@ export default function MyTickets() {
     } finally {
       setLoading(false);
     }
-  }, [activeRequester, search, categoryFilter, priorityFilter, statusFilter, sort, page, limit]);
+  }, [user, search, categoryFilter, priorityFilter, statusFilter, sort, page, limit]);
 
   useEffect(() => {
     loadTickets();
@@ -196,7 +194,7 @@ export default function MyTickets() {
 
   const hasActiveFilters = search || categoryFilter || priorityFilter || statusFilter;
 
-  if (!activeRequester) return null;
+  if (!user) return null;
 
   // ── Pagination helpers ──
   const totalPages = meta?.totalPages ?? 0;
@@ -365,7 +363,7 @@ export default function MyTickets() {
         )}
 
         {/* ── Desktop Table (≥768px) ── */}
-        {!loading && tickets.length > 0 && (
+        {!loading && (tickets?.length ?? 0) > 0 && (
           <>
             {/* Desktop */}
             <div className="d-none d-md-block" data-testid="desktop-table">

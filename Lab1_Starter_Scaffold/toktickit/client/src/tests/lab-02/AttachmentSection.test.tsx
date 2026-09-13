@@ -3,6 +3,15 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import AttachmentSection from "../../components/AttachmentSection.js";
+
+vi.mock("../../context/AuthContext.js", () => ({
+  useAuth: () => ({
+    user: { id: 1, role: "Requester", name: "Test User", mustChangePassword: false },
+    loading: false,
+    logout: vi.fn(),
+  }),
+  AuthProvider: ({ children }: any) => <>{children}</>
+}));
 import { RequesterContext } from "../../context/RequesterContext.js";
 
 const renderWithContext = (ui: React.ReactElement, activeRequester: any = null) => {

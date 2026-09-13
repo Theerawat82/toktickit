@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
+import { apiFetch } from "../api.js";
 import AttachmentSection from "./AttachmentSection.js";
 
 const ZEN = {
@@ -63,19 +64,17 @@ function formatDate(iso: string) {
 }
 
 export default function RequesterTicketDetail({ ticketId }: { ticketId: number }) {
-  const { activeRequester } = useRequester();
+  const { user } = useAuth();
   const [ticket, setTicket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
   const loadTicket = async () => {
-    if (!activeRequester) return;
+    if (!user) return;
     setLoading(true);
     setErrorMsg("");
     try {
-      const res = await fetch(`/api/tickets/${ticketId}`, {
-        headers: { "x-requester-id": String(activeRequester.id) },
-      });
+      const res = await apiFetch(`/api/tickets/${ticketId}`);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to fetch ticket detail");
@@ -90,9 +89,9 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
 
   useEffect(() => {
     loadTicket();
-  }, [ticketId, activeRequester]);
+  }, [ticketId, user]);
 
-  if (!activeRequester) return null;
+  if (!user) return null;
 
   if (loading) {
     return (

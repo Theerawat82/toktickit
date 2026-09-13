@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useRequester } from "../context/RequesterContext.js";
+import { useAuth } from "../context/AuthContext.js";
+import { apiFetch } from "../api.js";
 
 const ZEN_GREEN = "#006B3C";
 
@@ -18,7 +19,7 @@ interface System {
 }
 
 export default function CreateTicket() {
-  const { activeRequester } = useRequester();
+  const { user } = useAuth();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [systems, setSystems] = useState<System[]>([]);
@@ -46,12 +47,12 @@ export default function CreateTicket() {
     const fetchRefData = async () => {
       try {
         const [catRes, sysRes] = await Promise.all([
-          fetch("/api/categories"),
-          fetch("/api/related-systems")
+          apiFetch("/api/categories"),
+          apiFetch("/api/related-systems")
         ]);
 
-        if (catRes.ok) setCategories(await catRes.json());
-        if (sysRes.ok) setSystems(await sysRes.json());
+        if (catRes?.ok) setCategories(await catRes.json());
+        if (sysRes?.ok) setSystems(await sysRes.json());
       } catch (error) {
         console.error("Failed to load reference data", error);
       }
@@ -134,8 +135,8 @@ export default function CreateTicket() {
       setApiError("Please select a category and related system.");
       isValid = false;
     }
-    if (!activeRequester) {
-      setApiError("Active requester context is missing.");
+    if (!user) {
+      setApiError("Active user context is missing.");
       isValid = false;
     }
 
@@ -143,16 +144,14 @@ export default function CreateTicket() {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/tickets", {
+      const res = await apiFetch("/api/tickets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           summary,
           description,
           categoryId: Number(categoryId),
           systemId: Number(systemId),
-          requestedPriority,
-          requesterId: activeRequester!.id
+          requestedPriority
         })
       });
 
@@ -170,11 +169,8 @@ export default function CreateTicket() {
         });
 
         try {
-          const uploadRes = await fetch(`/api/tickets/${ticketId}/attachments`, {
+          const uploadRes = await apiFetch(`/api/tickets/${ticketId}/attachments`, {
             method: "POST",
-            headers: {
-              "x-requester-id": String(activeRequester!.id)
-            },
             body: formData
           });
 
@@ -212,8 +208,8 @@ export default function CreateTicket() {
     }
   };
 
-  if (!activeRequester) {
-    return null; // Do not render if no active requester
+  if (!user) {
+    return null; // Do not render if no active user
   }
 
   return (
@@ -244,7 +240,7 @@ export default function CreateTicket() {
             <input
               type="text"
               className="form-control"
-              value={`${activeRequester.name} (${activeRequester.email})`}
+              value={`${user.name} (${user.email})`}
               disabled
             />
           </div>

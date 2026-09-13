@@ -21,6 +21,12 @@ app.use(express.json());
 app.use("/api", healthRouter);
 
 // ---------------------------------------------------------------------------
+// Issue 3 — Authentication
+// ---------------------------------------------------------------------------
+import authRouter from "./routes/auth.js";
+app.use("/api/auth", authRouter);
+
+// ---------------------------------------------------------------------------
 // Issue 3 — Requester context (GET /api/requesters?active=true)
 // ---------------------------------------------------------------------------
 app.use("/api/requesters", requestersRouter);
