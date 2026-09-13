@@ -35,11 +35,10 @@ const upload = multer({
 
 const uploadSingle = upload.single("file");
 
-import { authenticateToken, enforcePasswordChange } from "../middleware/auth.js";
+import { requireAuth, requireRole, verifyTicketOwnership } from "../middleware/auth.js";
 
 const router = Router();
-router.use(authenticateToken);
-router.use(enforcePasswordChange);
+router.use(requireAuth);
 
 // POST /api/tickets
 router.post("/", async (req: Request, res: Response) => {
@@ -199,7 +198,7 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 // GET /api/tickets/:id
-router.get("/:id", async (req: Request, res: Response) => {
+router.get("/:id", verifyTicketOwnership, async (req: Request, res: Response) => {
   try {
     const requesterId = req.user.id;
 
@@ -226,11 +225,6 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Ticket not found" });
     }
 
-    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
-    if (ticket.requesterUserId !== requesterId) {
-      return res.status(404).json({ error: "Ticket not found" });
-    }
-
     res.status(200).json(ticket);
   } catch (error) {
     console.error("Failed to fetch ticket detail:", error);
@@ -239,7 +233,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 });
 
 // POST /api/tickets/:id/attachments
-router.post("/:id/attachments", (req, res, next) => {
+router.post("/:id/attachments", verifyTicketOwnership, (req, res, next) => {
   uploadSingle(req, res, (err) => {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ error: err.message });
@@ -272,11 +266,6 @@ router.post("/:id/attachments", (req, res, next) => {
       return res.status(404).json({ error: "Ticket not found" });
     }
 
-    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
-    if (ticket.requesterUserId !== requesterId) {
-      return res.status(404).json({ error: "Ticket not found" });
-    }
-
     if (ticket.attachments.length >= 5) {
       return res.status(400).json({ error: "Maximum of 5 active attachments allowed" });
     }
@@ -296,6 +285,57 @@ router.post("/:id/attachments", (req, res, next) => {
   } catch (error) {
     console.error("Failed to upload attachment:", error);
     res.status(500).json({ error: "Failed to upload attachment" });
+  }
+});
+
+// PATCH /api/tickets/:id/status
+router.patch("/:id/status", verifyTicketOwnership, async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const { status } = req.body;
+    
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+    // BR-05 Enforcement: Requesters cannot change status to Resolved or Closed
+    if (req.user.role === "Requester") {
+      if (status === "Resolved" || status === "Closed") {
+        return res.status(403).json({ error: "Requesters cannot directly set status to Resolved or Closed" });
+      }
+    }
+
+    const prisma = getPrisma();
+    const updated = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { currentStatus: status }
+    });
+    res.status(200).json(updated);
+  } catch (error) {
+    console.error("Failed to update status:", error);
+    res.status(500).json({ error: "Failed to update status" });
+  }
+});
+
+// POST /api/tickets/:id/internal-notes
+router.post("/:id/internal-notes", requireRole(["IT Staff", "Administrator"]), async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const { content } = req.body;
+    
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if (!content) return res.status(400).json({ error: "Content is required" });
+
+    const prisma = getPrisma();
+    const note = await prisma.internalNote.create({
+      data: {
+        content,
+        ticketId,
+        authorId: req.user.id
+      }
+    });
+    res.status(201).json(note);
+  } catch (error) {
+    console.error("Failed to create internal note:", error);
+    res.status(500).json({ error: "Failed to create internal note" });
   }
 });
 

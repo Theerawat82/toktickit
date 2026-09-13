@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { getPrisma } from "../prisma.js";
-import { authenticateToken } from "../middleware/auth.js";
+import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-for-development";
@@ -52,13 +52,13 @@ router.post("/login", async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/logout
-router.post("/logout", authenticateToken, async (req: Request, res: Response) => {
+router.post("/logout", requireAuth, async (req: Request, res: Response) => {
   // Since we are using stateless JWT, we just instruct the client to discard the token.
   res.status(200).json({ message: "Logged out successfully." });
 });
 
 // GET /api/auth/me
-router.get("/me", authenticateToken, async (req: Request, res: Response) => {
+router.get("/me", requireAuth, async (req: Request, res: Response) => {
   if (!req.user) {
     return res.status(401).json({ error: "Not authenticated" });
   }
@@ -69,7 +69,7 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/change-password
-router.post("/change-password", authenticateToken, async (req: Request, res: Response) => {
+router.post("/change-password", requireAuth, async (req: Request, res: Response) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
