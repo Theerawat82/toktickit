@@ -87,6 +87,7 @@ model Ticket {
 
   itPriority ITPriority   @default(Low)
   status     TicketStatus @default(New)
+  problemAppearsResolved Boolean @default(false)
 
   attachments   Attachment[]
   comments      Comment[]
