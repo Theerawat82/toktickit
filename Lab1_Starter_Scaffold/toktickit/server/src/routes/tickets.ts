@@ -233,16 +233,34 @@ router.get("/:id", verifyTicketOwnership, async (req: Request, res: Response) =>
 });
 
 // POST /api/tickets/:id/attachments
-router.post("/:id/attachments", verifyTicketOwnership, (req, res, next) => {
+router.post("/:id/attachments", (req, res, next) => {
   uploadSingle(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      return res.status(400).json({ error: err.message });
-    } else if (err) {
-      return res.status(400).json({ error: err.message });
+    if (!err) {
+      next();
+      return;
     }
-    next();
+
+    let responded = false;
+    const sendError = () => {
+      if (responded) return;
+      responded = true;
+      res.set('Connection', 'close');
+      res.status(400).json({ error: err.message });
+    };
+
+    if (req.readableEnded || req.destroyed) {
+      sendError();
+      return;
+    }
+
+    req.on('end', sendError);
+    req.on('close', sendError);
+    req.on('error', sendError);
+
+    req.resume();
   });
-}, async (req: Request, res: Response) => {
+}, verifyTicketOwnership, async (req: Request, res: Response) => {
+  // ...handler เดิม ไม่ต้องแก้
   try {
     const requesterId = req.user.id;
 
