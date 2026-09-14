@@ -6,6 +6,7 @@ import ChangePassword from "./components/ChangePassword.js";
 import CreateTicket from "./components/CreateTicket.js";
 import MyTickets from "./components/MyTickets.js";
 import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
+import ProtectedRoute from "./components/ProtectedRoute.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -44,48 +45,25 @@ export default function App() {
     }
   }, []);
 
-  if (authLoading) {
-    return (
-      <div className="container py-5 text-center">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="container py-5" style={{ maxWidth: 640 }}>
-        <h1 className="h3 mb-4 text-center">
-          TokTickIT <span className="text-success">IT Service Desk</span>
-        </h1>
-        <Login />
-      </div>
-    );
-  }
-
   return (
-    <div className="container py-5" style={{ maxWidth: 640 }}>
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 className="h3 mb-1">
-            TokTickIT <span className="text-success">IT Service Desk</span>
-          </h1>
-          <p className="text-muted mb-0">IT Support Request System</p>
+    <ProtectedRoute>
+      <div className="container py-5" style={{ maxWidth: 640 }}>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h1 className="h3 mb-1">
+              TokTickIT <span className="text-success">IT Service Desk</span>
+            </h1>
+            <p className="text-muted mb-0">IT Support Request System</p>
+          </div>
+          <div className="text-end">
+            <div className="fw-bold">{user?.name}</div>
+            <div className="small text-muted mb-2">{user?.role}</div>
+            <button className="btn btn-sm btn-outline-danger" onClick={logout}>
+              Logout
+            </button>
+          </div>
         </div>
-        <div className="text-end">
-          <div className="fw-bold">{user.name}</div>
-          <div className="small text-muted mb-2">{user.role}</div>
-          <button className="btn btn-sm btn-outline-danger" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </div>
 
-      {user.mustChangePassword ? (
-        <ChangePassword />
-      ) : (
         <>
           {ticketId ? (
             <RequesterTicketDetail ticketId={ticketId} />
@@ -149,7 +127,7 @@ export default function App() {
             </div>
           )}
         </>
-      )}
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

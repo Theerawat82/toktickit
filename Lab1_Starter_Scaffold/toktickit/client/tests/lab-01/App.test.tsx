@@ -1,7 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { AuthProvider } from '../../src/context/AuthContext';
 import App from "../../src/App.js";
 import * as api from "../../src/api.js";
+
+vi.mock("../../src/context/AuthContext", () => ({
+  useAuth: () => ({
+    user: { id: 1, name: "Test User", role: "Requester" },
+    token: "fake-token",
+    logout: vi.fn(),
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
 
 const MOCK_REQUESTERS = [
   { id: 1, name: "Alice", email: "alice@example.com", isActive: true },
@@ -22,7 +32,11 @@ describe("App", () => {
 
   // WORKED EXAMPLE — provided for you.
   it("renders the TokTickIT heading", () => {
-    render(<App />);
+    render(
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
     expect(screen.getByText(/TokTickIT/i)).toBeInTheDocument();
   });
 
@@ -35,7 +49,11 @@ describe("App", () => {
       ]
     });
 
-    render(<App />);
+    render(
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
 
     // Button click triggers the fetch — no auto-load on mount
     fireEvent.click(screen.getByRole("button", { name: /check system/i }));
@@ -54,7 +72,11 @@ describe("App", () => {
   it("shows an Offline error message when the API is unavailable", async () => {
     vi.spyOn(api, "checkSystem").mockRejectedValue(new Error("Backend is offline"));
 
-    render(<App />);
+    render(
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
 
     // Button click triggers the fetch — no auto-load on mount
     fireEvent.click(screen.getByRole("button", { name: /check system/i }));
