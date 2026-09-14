@@ -19,7 +19,7 @@ The testing strategy for Lab 3 focuses heavily on Authorization, RBAC boundaries
 | T-006 | API | FR-07, AC-05, BR-11 | IT Staff attempts invalid status transition (New to Closed) | 409 Conflict | `server/tests/lab-03/ticket.status.test.ts` |
 | T-007 | API | FR-12, AC-09, BR-13, BR-14 | Admin deactivates last active Admin | 400 Bad Request, safety guard blocks | `server/tests/lab-03/admin.safety.test.ts` |
 | T-008 | UI | FR-03 | Render Admin navigation for IT Staff user | Navigation links are not rendered | `client/src/tests/lab-03/Navigation.test.tsx` |
-| T-009 | E2E | FR-02, AC-02, BR-05, BR-06 | E2E flow: First login forced password change | User cannot skip change screen, login completes after | `e2e/lab-03/auth.spec.ts` |
+| T-009 | E2E | FR-02, AC-02, BR-03, BR-06 | E2E flow: First login forced password change | User cannot skip change screen, login completes after | `e2e/lab-03/auth.spec.ts` |
 | T-010 | E2E | FR-05, FR-06, AC-03, AC-04, BR-08, BR-09 | E2E flow: IT Staff takes ownership of ticket | Ticket owner updates, UI reflects change | `e2e/lab-03/staff.queue.spec.ts` |
 | T-011 | API | FR-09, AC-07, BR-07 | Requester posts public comment on their own ticket | 201 Created with comment object and author info | `server/tests/lab-03/comments-notes.api.test.ts` |
 | T-012 | API | FR-11, AC-08, BR-12, BR-15 | Admin creates new IT Staff user with initial password | 201 Created with user object and mustChangePassword set to true | `server/tests/lab-03/users-admin.api.test.ts` |
