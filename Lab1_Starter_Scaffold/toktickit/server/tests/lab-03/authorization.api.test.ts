@@ -132,7 +132,7 @@ describe("Authorization (Cross-Cutting)", () => {
     });
   });
 
-  describe("AC-04: Internal Notes Access & Role Separation", () => {
+  describe("AC-06: Internal Notes Access & Role Separation", () => {
     it("should allow IT Staff to post internal note", async () => {
       (getPrisma as any).mockReturnValue({
         user: { findUnique: vi.fn().mockResolvedValue(mockITStaff) },
@@ -198,7 +198,7 @@ describe("Authorization (Cross-Cutting)", () => {
     });
   });
 
-  describe("BR-05: Direct API Status Changes", () => {
+  describe("BR-11: Direct API Status Changes", () => {
     it("should return 403 if Requester tries to change status to Resolved", async () => {
       (getPrisma as any).mockReturnValue({
         user: { findUnique: vi.fn().mockResolvedValue(mockRequester) },

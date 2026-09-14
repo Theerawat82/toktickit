@@ -314,7 +314,7 @@ router.patch("/:id/status", verifyTicketOwnership, async (req: Request, res: Res
     
     if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
 
-    // BR-05 Enforcement: Requesters cannot change status to Resolved or Closed
+    // BR-11 Enforcement: Requesters cannot change status to Resolved or Closed
     if (req.user.role === "Requester") {
       if (status === "Resolved" || status === "Closed") {
         return res.status(403).json({ error: "Requesters cannot directly set status to Resolved or Closed" });

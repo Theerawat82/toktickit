@@ -39,8 +39,8 @@ The testing strategy for Lab 3 focuses heavily on Authorization, RBAC boundaries
 
 ### Business Rules Traceability
 * **BR-01 & BR-02** (Password Hashing & Auth Credentials): T-001
-* **BR-03** (Inactive Account Login Prevention): T-002
-* **BR-05 & BR-06** (MustChangePassword Enforcement & Session-Driven Identity): T-009
+* **BR-04** (Inactive Account Login Prevention): T-002
+* **BR-03 & BR-06** (MustChangePassword Enforcement & Session-Driven Identity): T-009
 * **BR-07** (Public Comment Access): T-011
 * **BR-08 & BR-09** (IT Staff Ticket Claiming & Priority Operations): T-010
 * **BR-10** (Internal Notes Confidentiality - Staff/Admin Only): T-005
