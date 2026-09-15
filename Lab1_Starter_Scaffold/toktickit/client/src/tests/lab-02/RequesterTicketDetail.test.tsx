@@ -3,9 +3,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import RequesterTicketDetail from "../../components/RequesterTicketDetail.js";
 
+const MOCK_USER = { id: 1, role: "Requester", name: "Test User", mustChangePassword: false };
 vi.mock("../../context/AuthContext.js", () => ({
   useAuth: () => ({
-    user: { id: 1, role: "Requester", name: "Test User", mustChangePassword: false },
+    user: MOCK_USER,
     loading: false,
     logout: vi.fn(),
   }),

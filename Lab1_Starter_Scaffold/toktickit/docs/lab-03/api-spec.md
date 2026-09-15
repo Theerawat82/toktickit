@@ -238,16 +238,18 @@ This document details the RESTful API endpoints required for Authentication, IT 
 * **Request Body**:
   ```json
   {
-    "status": "In Progress"
+    "status": "In Progress",
+    "problemAppearsResolved": true
   }
   ```
-  *Allowed values: "New", "Open", "In Progress", "Waiting for Requester", "Resolved", "Closed", "Reopened", "Cancelled"*
+  *Allowed values for `status` (IT Staff/Admin only): "New", "Open", "In Progress", "Waiting for Requester", "Resolved", "Closed", "Reopened", "Cancelled"*
+  *`problemAppearsResolved` is an optional boolean. Requesters can set this to `true` to indicate their issue is resolved.*
 * **Responses**:
   * `200 OK`:
     ```json
     {
-      "message": "Status updated successfully.",
-      "ticket": { "id": 101, "status": "In Progress" }
+      "message": "Ticket updated successfully.",
+      "ticket": { "id": 101, "status": "In Progress", "problemAppearsResolved": true }
     }
     ```
   * `400 Bad Request`: Invalid status string.

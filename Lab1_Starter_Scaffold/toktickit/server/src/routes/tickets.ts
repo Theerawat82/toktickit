@@ -310,23 +310,48 @@ router.post("/:id/attachments", (req, res, next) => {
 router.patch("/:id/status", verifyTicketOwnership, async (req: Request, res: Response) => {
   try {
     const ticketId = Number(req.params.id);
-    const { status } = req.body;
+    const { status, problemAppearsResolved } = req.body;
     
     if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
 
-    // BR-11 Enforcement: Requesters cannot change status to Resolved or Closed
-    if (req.user.role === "Requester") {
-      if (status === "Resolved" || status === "Closed") {
-        return res.status(403).json({ error: "Requesters cannot directly set status to Resolved or Closed" });
+    if (status === undefined && problemAppearsResolved === undefined) {
+      return res.status(400).json({ error: "No update fields provided" });
+    }
+
+    const updateData: any = {};
+
+    // BR-11: Requesters cannot change actual status
+    if (status !== undefined) {
+      if (req.user.role === "Requester") {
+        return res.status(403).json({ error: "Requesters cannot change the ticket status directly" });
       }
+      updateData.currentStatus = status;
+    }
+
+    // BR-12: Requesters can set problemAppearsResolved (as can IT Staff/Admin)
+    if (problemAppearsResolved !== undefined) {
+      if (typeof problemAppearsResolved !== "boolean") {
+        return res.status(400).json({ error: "problemAppearsResolved must be a boolean" });
+      }
+      updateData.problemAppearsResolved = problemAppearsResolved;
     }
 
     const prisma = getPrisma();
+
+    // Check if ticket is already Resolved/Closed (for BR-12 logic)
+    if (problemAppearsResolved === true && req.user.role === "Requester") {
+      const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+      if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+      if (ticket.currentStatus === "Resolved" || ticket.currentStatus === "Closed") {
+         return res.status(400).json({ error: `Ticket is already ${ticket.currentStatus}` });
+      }
+    }
+
     const updated = await prisma.ticket.update({
       where: { id: ticketId },
-      data: { currentStatus: status }
+      data: updateData
     });
-    res.status(200).json(updated);
+    res.status(200).json({ message: "Ticket updated successfully.", ticket: updated });
   } catch (error) {
     console.error("Failed to update status:", error);
     res.status(500).json({ error: "Failed to update status" });
@@ -356,5 +381,132 @@ router.post("/:id/internal-notes", requireRole(["IT Staff", "Administrator"]), a
     res.status(500).json({ error: "Failed to create internal note" });
   }
 });
+
+// GET /api/tickets/:id/internal-notes
+// AC-06: Only IT Staff and Administrators may retrieve internal notes. Requesters receive 403.
+router.get("/:id/internal-notes", requireRole(["IT Staff", "Administrator"]), async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    const notes = await prisma.internalNote.findMany({
+      where: { ticketId },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true }
+        }
+      }
+    });
+
+    const result = notes.map((n: any) => ({
+      id: n.id,
+      content: n.content,
+      createdAt: n.createdAt,
+      author: {
+        id: n.author.id,
+        name: n.author.name,
+        role: n.author.role
+      }
+    }));
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Failed to fetch internal notes:", error);
+    res.status(500).json({ error: "Failed to fetch internal notes" });
+  }
+});
+
+// POST /api/tickets/:id/comments
+// AC-07: Requester (must own ticket), IT Staff, Administrator may post public comments.
+// BR-09: Comments are append-only, cannot be empty or whitespace-only.
+router.post("/:id/comments", verifyTicketOwnership, async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const { content } = req.body;
+
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+    // BR-09: Reject empty or whitespace-only content
+    if (!content || typeof content !== "string" || content.trim().length === 0) {
+      return res.status(400).json({ error: "Comment content cannot be empty" });
+    }
+
+    // Enforce maximum length (2000 chars)
+    if (content.length > 2000) {
+      return res.status(400).json({ error: "Comment content cannot exceed 2000 characters" });
+    }
+
+    const prisma = getPrisma();
+
+    // Verify ticket exists
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    const comment = await prisma.comment.create({
+      data: {
+        content: content.trim(),
+        ticketId,
+        authorId: req.user.id
+      }
+    });
+
+    res.status(201).json({
+      id: comment.id,
+      ticketId: comment.ticketId,
+      authorId: comment.authorId,
+      content: comment.content,
+      createdAt: comment.createdAt
+    });
+  } catch (error) {
+    console.error("Failed to create comment:", error);
+    res.status(500).json({ error: "Failed to create comment" });
+  }
+});
+
+// GET /api/tickets/:id/comments
+// Requester (must own ticket), IT Staff, Administrator may view public comments.
+router.get("/:id/comments", verifyTicketOwnership, async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+    const prisma = getPrisma();
+
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    const comments = await prisma.comment.findMany({
+      where: { ticketId },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true }
+        }
+      }
+    });
+
+    const result = comments.map((c: any) => ({
+      id: c.id,
+      content: c.content,
+      createdAt: c.createdAt,
+      author: {
+        id: c.author.id,
+        name: c.author.name,
+        role: c.author.role
+      }
+    }));
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Failed to fetch comments:", error);
+    res.status(500).json({ error: "Failed to fetch comments" });
+  }
+});
+
 
 export default router;
