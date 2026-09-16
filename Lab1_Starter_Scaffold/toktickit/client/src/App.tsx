@@ -67,6 +67,10 @@ export default function App() {
         <>
           {ticketId ? (
             <RequesterTicketDetail ticketId={ticketId} />
+          ) : user?.role === "IT_Staff" || user?.role === "Administrator" ? (
+            <>
+              <StaffTicketQueue />
+            </>
           ) : (
             <>
               <CreateTicket />

@@ -122,3 +122,67 @@ export async function fetchTickets(
 
   return res.json();
 }
+
+// Issue 6 — Staff Ticket Queue API
+export interface StaffTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  categoryId: number;
+  category: { id: number; name: string } | null;
+  requestedPriority: string;
+  itPriority: string;
+  currentStatus: string;
+  requester: { id: number; name: string } | null;
+  owner: { id: number; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaffTicketListMeta {
+  totalItems: number;
+  page: number;
+  totalPages: number;
+  pageSize: number;
+}
+
+export interface StaffTicketListResponse {
+  data: StaffTicket[];
+  pagination: StaffTicketListMeta;
+}
+
+export interface StaffTicketFilterParams {
+  search?: string;
+  category?: string;
+  status?: string;
+  itPriority?: string;
+  ownerId?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export async function fetchStaffQueue(
+  params: StaffTicketFilterParams
+): Promise<StaffTicketListResponse> {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.category) query.set("category", params.category);
+  if (params.status) query.set("status", params.status);
+  if (params.itPriority) query.set("itPriority", params.itPriority);
+  if (params.ownerId !== undefined) query.set("ownerId", String(params.ownerId));
+  if (params.sort) query.set("sort", params.sort);
+  if (params.order) query.set("order", params.order);
+  query.set("page", String(params.page ?? 1));
+  query.set("pageSize", String(params.pageSize ?? 20));
+
+  const res = await apiFetch(`/api/tickets/queue?${query.toString()}`);
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to fetch staff queue");
+  }
+
+  return res.json();
+}

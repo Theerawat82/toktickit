@@ -3,7 +3,7 @@ import { getPrisma } from "../prisma.js";
 import path from "path";
 import fs from "fs";
 
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, hasRole } from "../middleware/auth.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -29,7 +29,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     }
 
     // IT Staff and Admins bypass Requester-level ownership check
-    if (req.user.role !== "IT Staff" && req.user.role !== "Administrator") {
+    if (!hasRole(req.user.role, ["IT_Staff", "Administrator"])) {
       if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
           (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
         return res.status(404).json({ error: "Attachment not found" });
@@ -69,7 +69,7 @@ router.get("/:id/download", async (req: Request, res: Response) => {
     }
 
     // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
-    if (req.user.role !== "IT Staff" && req.user.role !== "Administrator") {
+    if (!hasRole(req.user.role, ["IT_Staff", "Administrator"])) {
       if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
           (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
         return res.status(404).json({ error: "Attachment not found" });
@@ -119,7 +119,8 @@ router.post("/:id/remove", async (req: Request, res: Response) => {
     }
 
     // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
-    if (req.user.role !== "IT Staff" && req.user.role !== "Administrator") {
+    if (!hasRole(req.user.role, ["IT_Staff", "Administrator"])) {
+      
       if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
           (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
         return res.status(404).json({ error: "Attachment not found" });

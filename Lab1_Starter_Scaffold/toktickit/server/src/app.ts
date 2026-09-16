@@ -7,6 +7,7 @@ import categoriesRouter from "./routes/categories.js";
 import relatedSystemsRouter from "./routes/relatedSystems.js";
 import ticketsRouter from "./routes/tickets.js";
 import attachmentsRouter from "./routes/attachments.js";
+import usersRouter from "./routes/users.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -51,6 +52,11 @@ app.use("/api/tickets", ticketsRouter);
 // Issue 6 — Attachments
 // ---------------------------------------------------------------------------
 app.use("/api/attachments", attachmentsRouter);
+
+// ---------------------------------------------------------------------------
+// Issue 6 — Staff user list (GET /api/users/staff)
+// ---------------------------------------------------------------------------
+app.use("/api/users", usersRouter);
 
 export { app };
 export default app;

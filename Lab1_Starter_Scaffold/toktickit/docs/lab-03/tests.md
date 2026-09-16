@@ -23,6 +23,18 @@ The testing strategy for Lab 3 focuses heavily on Authorization, RBAC boundaries
 | T-010 | E2E | FR-05, FR-06, AC-03, AC-04, BR-08, BR-09 | E2E flow: IT Staff takes ownership of ticket | Ticket owner updates, UI reflects change | `e2e/lab-03/staff.queue.spec.ts` |
 | T-011 | API | FR-09, AC-07, BR-07 | Requester posts public comment on their own ticket | 201 Created with comment object and author info | `server/tests/lab-03/comments-notes.api.test.ts` |
 | T-012 | API | FR-11, AC-08, BR-12, BR-15 | Admin creates new IT Staff user with initial password | 201 Created with user object and mustChangePassword set to true | `server/tests/lab-03/users-admin.api.test.ts` |
+| T-013 | API | FR-03 | Unauthenticated user accesses IT Staff queue | 401 Unauthorized | `server/tests/lab-03/staff-queue.api.test.ts` |
+| T-014 | API | FR-03 | Requester accesses IT Staff queue | 403 Forbidden | `server/tests/lab-03/staff-queue.api.test.ts` |
+| T-015 | API | FR-05, AC-04 | IT Staff fetches queue (happy path) | 200 OK, paginated list with owner mapped | `server/tests/lab-03/staff-queue.api.test.ts` |
+| T-016 | API | FR-05, AC-04 | IT Staff fetches empty queue | 200 OK, empty data array | `server/tests/lab-03/staff-queue.api.test.ts` |
+| T-017 | API | FR-05, AC-04 | IT Staff fetches queue with invalid query params | 200 OK, ignores invalid params | `server/tests/lab-03/staff-queue.api.test.ts` |
+| T-018 | API | FR-05, AC-04 | IT Staff fetches queue with out-of-range page | 200 OK, empty data array on specified page | `server/tests/lab-03/staff-queue.api.test.ts` |
+| T-019 | API | FR-05, AC-04 | Regression test: /queue is not swallowed by /:id | 200 OK, avoids 400 Invalid ticket ID | `server/tests/lab-03/staff-queue.api.test.ts` |
+| T-020 | UI | FR-05, AC-04 | StaffTicketQueue renders filters including Category and Owner | Filters are present in document | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| T-021 | UI | FR-05, AC-04 | StaffTicketQueue renders table rows with ticket data | Ticket row and summary displayed | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| T-022 | UI | FR-05, AC-04 | StaffTicketQueue displays empty state | "No tickets in queue" message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| T-023 | UI | FR-05, AC-04 | StaffTicketQueue displays no-results state | "No matching tickets" message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| T-024 | UI | FR-05, AC-04 | StaffTicketQueue displays error state | Error alert message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
 
 ## 3. AC & BR Traceability Matrix
 

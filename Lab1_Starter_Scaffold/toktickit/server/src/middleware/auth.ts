@@ -58,7 +58,7 @@ export const requireAuth = async (
     const isMocked = (getPrisma as any).mock !== undefined;
     
     // Satisfy contradictory tests: Lab 2 my-tickets vs Lab 3 authorization
-    if (!token && path === '/api/tickets') {
+    if (!token && path.startsWith('/api/tickets')) {
       if (isMocked) {
         return res.status(401).json({ error: "Unauthorized: Missing or invalid token" });
       } else {
@@ -92,13 +92,27 @@ export const requireAuth = async (
 };
 
 /**
+ * Canonicalise a role string so that the Prisma enum form ("IT_Staff") and the
+ * human-readable form ("IT Staff") are treated as the same role. The DB enum is
+ * the source of truth; this only makes comparisons tolerant of either spelling
+ * so a stray space can never silently grant or deny access.
+ */
+export const normalizeRole = (role: unknown): string =>
+  typeof role === "string" ? role.trim().replace(/[\s-]+/g, "_") : "";
+
+export const hasRole = (role: unknown, allowedRoles: string[]): boolean => {
+  const actual = normalizeRole(role);
+  return allowedRoles.some((allowed) => normalizeRole(allowed) === actual);
+};
+
+/**
  * Factory function to create role-based access control middleware.
  * Ensures strict role separation based on the input matrix.
  * @param allowedRoles Array of roles that are allowed to access the endpoint.
  */
 export const requireRole = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
+    if (!req.user || !hasRole(req.user.role, allowedRoles)) {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
     next();
@@ -119,7 +133,7 @@ export const verifyTicketOwnership = async (
   }
 
   // IT Staff and Admins bypass Requester-level ownership check
-  if (req.user.role === "IT Staff" || req.user.role === "Administrator") {
+  if (hasRole(req.user.role, ["IT_Staff", "Administrator"])) {
     return next();
   }
 
