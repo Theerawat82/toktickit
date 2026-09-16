@@ -96,9 +96,9 @@ describe("Authentication API", () => {
       expect(res.body.user.id).toBe(1);
     });
 
-    it("should return 403 if token is missing", async () => {
+    it("should return 401 if token is missing", async () => {
       const res = await request(app).get("/api/auth/me");
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(401);
     });
   });
 
