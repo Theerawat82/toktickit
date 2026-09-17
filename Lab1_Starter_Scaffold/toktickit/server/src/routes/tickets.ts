@@ -626,6 +626,8 @@ router.get("/:id", verifyTicketOwnership, async (req: Request, res: Response) =>
 
         requester: true,
 
+        ticketOwner: { select: { id: true, name: true, email: true, role: true } },
+
         attachments: true
 
       }
@@ -810,6 +812,140 @@ router.post("/:id/attachments", (req, res, next) => {
 
 
 
+// PATCH /api/tickets/:id/assign
+
+router.patch("/:id/assign", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
+
+  try {
+
+    const ticketId = Number(req.params.id);
+
+    const { ticketOwnerId } = req.body;
+
+
+
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+
+
+    const prisma = getPrisma();
+
+
+
+    // Check if ticket exists
+
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+
+
+    let finalOwnerId = null;
+
+
+
+    if (ticketOwnerId) {
+
+      const newOwner = await prisma.user.findUnique({ where: { id: Number(ticketOwnerId) } });
+
+      if (!newOwner) return res.status(400).json({ error: `User with ID ${ticketOwnerId} not found.` });
+
+      if (!newOwner.isActive) return res.status(400).json({ error: `User with ID ${ticketOwnerId} is not active.` });
+
+      if (newOwner.role !== "IT_Staff" && newOwner.role !== "Administrator") {
+
+         return res.status(400).json({ error: `User with ID ${ticketOwnerId} is not an active IT Staff or Administrator.` });
+
+      }
+
+      finalOwnerId = newOwner.id;
+
+    }
+
+
+
+    const updated = await prisma.ticket.update({
+
+      where: { id: ticketId },
+
+      data: { ticketOwnerId: finalOwnerId }
+
+    });
+
+
+
+    res.status(200).json({ message: "Ticket owner updated successfully.", ticket: updated });
+
+  } catch (error) {
+
+    console.error("Failed to assign ticket:", error);
+
+    res.status(500).json({ error: "Failed to assign ticket" });
+
+  }
+
+});
+
+
+
+// PATCH /api/tickets/:id/priority
+
+router.patch("/:id/priority", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
+
+  try {
+
+    const ticketId = Number(req.params.id);
+
+    const { itPriority } = req.body;
+
+
+
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+
+
+    const validPriorities = ["Low", "Medium", "High", "Urgent"];
+
+    if (!itPriority || !validPriorities.includes(itPriority)) {
+
+      return res.status(400).json({ error: "Invalid priority value." });
+
+    }
+
+
+
+    const prisma = getPrisma();
+
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+
+
+    const updated = await prisma.ticket.update({
+
+      where: { id: ticketId },
+
+      data: { itPriority }
+
+    });
+
+
+
+    res.status(200).json({ message: "IT priority updated successfully.", ticket: updated });
+
+  } catch (error) {
+
+    console.error("Failed to update priority:", error);
+
+    res.status(500).json({ error: "Failed to update priority" });
+
+  }
+
+});
+
+
+
 // PATCH /api/tickets/:id/status
 
 router.patch("/:id/status", verifyTicketOwnership, async (req: Request, res: Response) => {
@@ -848,7 +984,99 @@ router.patch("/:id/status", verifyTicketOwnership, async (req: Request, res: Res
 
       }
 
+
+
+      const prisma = getPrisma();
+
+      const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+
+      if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+
+
+      const currentStatus = ticket.currentStatus;
+
+
+
+      // Status transition matrix BR-11 validation
+
+      let validNextStatuses: string[] = [];
+
+      switch (currentStatus) {
+
+        case "New":
+
+          validNextStatuses = ["Open", "Cancelled"];
+
+          break;
+
+        case "Open":
+
+          validNextStatuses = ["In_Progress", "In Progress", "Resolved", "Cancelled"];
+
+          break;
+
+        case "In_Progress":
+
+        case "In Progress":
+
+          validNextStatuses = ["Waiting_for_Requester", "Waiting for Requester", "Resolved"];
+
+          break;
+
+        case "Waiting_for_Requester":
+
+        case "Waiting for Requester":
+
+          validNextStatuses = ["In_Progress", "In Progress", "Resolved"]; // From waiting, usually goes back to in progress or resolved.
+
+          break;
+
+        case "Resolved":
+
+          validNextStatuses = ["Closed", "Reopened"];
+
+          break;
+
+        case "Reopened":
+
+          validNextStatuses = ["In_Progress", "In Progress", "Resolved"]; // Assume similar to Open
+
+          break;
+
+        default:
+
+          break;
+
+      }
+
+
+
+      // Normalize string matching (e.g. handle space vs underscore if needed)
+
+      const normalizeStatus = (s: string) => s.replace(/_/g, " ");
+
+      const isValidTransition = validNextStatuses.some(s => normalizeStatus(s) === normalizeStatus(status));
+
+
+
+      if (!isValidTransition) {
+
+         return res.status(409).json({ error: `Invalid status transition from ${currentStatus} to ${status}.` });
+
+      }
+
+
+
       updateData.currentStatus = status;
+
+      // also update enum if we are using it
+
+      if (["New", "Open", "In_Progress", "Waiting_for_Requester", "Resolved", "Closed", "Reopened", "Cancelled"].includes(status.replace(/ /g, "_"))) {
+
+         updateData.status = status.replace(/ /g, "_");
+
+      }
 
     }
 

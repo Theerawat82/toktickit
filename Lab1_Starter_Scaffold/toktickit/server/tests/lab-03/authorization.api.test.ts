@@ -220,7 +220,7 @@ describe("Authorization (Cross-Cutting)", () => {
       (getPrisma as any).mockReturnValue({
         user: { findUnique: vi.fn().mockResolvedValue(mockITStaff) },
         ticket: {
-          findUnique: vi.fn().mockResolvedValue({ id: 1, requesterId: mockRequester.id }),
+          findUnique: vi.fn().mockResolvedValue({ id: 1, requesterId: mockRequester.id, currentStatus: "Open" }),
           update: vi.fn().mockResolvedValue({ id: 1, currentStatus: "Resolved" })
         }
       });

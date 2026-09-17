@@ -6,6 +6,8 @@ import ChangePassword from "./components/ChangePassword.js";
 import CreateTicket from "./components/CreateTicket.js";
 import MyTickets from "./components/MyTickets.js";
 import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
+import StaffTicketDetail from "./components/StaffTicketDetail.js";
+import StaffTicketQueue from "./components/StaffTicketQueue.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
@@ -66,7 +68,11 @@ export default function App() {
 
         <>
           {ticketId ? (
-            <RequesterTicketDetail ticketId={ticketId} />
+            user?.role === "IT_Staff" || user?.role === "Administrator" ? (
+              <StaffTicketDetail ticketId={ticketId} />
+            ) : (
+              <RequesterTicketDetail ticketId={ticketId} />
+            )
           ) : user?.role === "IT_Staff" || user?.role === "Administrator" ? (
             <>
               <StaffTicketQueue />
