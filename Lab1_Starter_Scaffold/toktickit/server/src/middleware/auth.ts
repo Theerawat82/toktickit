@@ -15,9 +15,14 @@ const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-for-development";
 
 /**
  * Middleware to authenticate and authorize a request.
- * - Validates session/token -> 401/403
- * - Validates isActive -> 403
- * - Validates mustChangePassword -> 403 (allows /auth/change-password, /auth/logout, and /auth/me)
+ *
+ * Contract (Lab 3 api-spec.md; supersedes the Lab 2 `x-requester-id` prototype):
+ *  - 401 Unauthorized : no token, malformed token, expired token, or the token
+ *                        references a user that no longer exists.
+ *  - 403 Forbidden    : identity IS established, but the account is not allowed
+ *                        through (isActive === false, or mustChangePassword).
+ *
+ * Identity is derived ONLY from the session token (FR-04 / BR-06).
  */
 export const requireAuth = async (
   req: Request,
@@ -25,63 +30,56 @@ export const requireAuth = async (
   next: NextFunction
 ) => {
   const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(" ")[1];
-  const path = req.originalUrl || req.path;
+  const token = authHeader && authHeader.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length).trim()
+    : null;
+
+  // 1. ถ้าไม่มี Token -> ตอบ 401 ทันที
+  if (!token) {
+    return res
+      .status(401)
+      .json({ error: "Unauthorized: Missing or invalid token" });
+  }
 
   let user: any = null;
 
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { id: number };
-      const prisma = getPrisma();
-      user = await prisma.user.findUnique({
-        where: { id: decoded.id },
-      });
-    } catch (err) {
-      const status = path.includes('/auth/') ? 403 : 401;
-      return res.status(status).json({ error: "Unauthorized: Invalid or expired token" });
-    }
-  } else {
-    // Fallback for Lab 2 backward compatibility
-    const legacyId = req.header("x-requester-id") ?? req.body?.requesterId;
-    if (legacyId) {
-      const parsed = Number(legacyId);
-      if (!isNaN(parsed)) {
-        // Mock a user object to pass auth guards in Lab 2 tests
-        user = { id: parsed, role: "Requester", isActive: true, mustChangePassword: false };
-      }
-    }
+  // 2. ตรวจสอบ JWT Token
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: number };
+    const prisma = getPrisma();
+    user = await prisma.user.findUnique({ where: { id: decoded.id } });
+  } catch (err) {
+    return res
+      .status(401)
+      .json({ error: "Unauthorized: Missing or invalid token" });
   }
 
-  // แยกการตอบกลับ: /auth/ ตอบ 403 ตาม auth.api.test.ts, Route อื่นตอบ 401 ตาม authorization.api.test.ts
+  // 3. ถ้า Token ใช้ได้แต่หา User ใน DB ไม่เจอ -> ตอบ 401
   if (!user) {
-    const isMocked = (getPrisma as any).mock !== undefined;
-    
-    // Satisfy contradictory tests: Lab 2 my-tickets vs Lab 3 authorization
-    if (!token && path === '/api/tickets') {
-      if (isMocked) {
-        return res.status(401).json({ error: "Unauthorized: Missing or invalid token" });
-      } else {
-        return res.status(403).json({ error: "Unauthorized: Missing x-requester-id" });
-      }
-    }
-    
-    const status = path.includes('/auth/') ? 403 : (isMocked && path === '/api/tickets' ? 401 : 403);
-    return res.status(status).json({ error: "Unauthorized: Missing or invalid token or x-requester-id" });
+    return res
+      .status(401)
+      .json({ error: "Unauthorized: Missing or invalid token" });
   }
 
+  // 4. บัญชีถูกระงับ (Inactive) -> ตอบ 403
   if (user.isActive === false) {
-    return res.status(403).json({ error: "Account is inactive. Please contact your administrator." });
+    return res
+      .status(403)
+      .json({ error: "Account is inactive. Please contact your administrator." });
   }
 
+  // 5. บังคับเปลี่ยนรหัสผ่าน (mustChangePassword) -> ตอบ 403 (เว้น Endpoint ยกเว้น)
   if (user.mustChangePassword) {
-    const isChangePassword = path.includes('/auth/change-password');
-    const isLogout = path.includes('/auth/logout');
-    const isMe = path.includes('/auth/me'); // ยอมให้เข้า /api/auth/me ได้แม้ต้องเปลี่ยนรหัสผ่าน
+    const path = req.originalUrl || req.path;
+    const isEscapeHatch =
+      path.includes("/auth/change-password") ||
+      path.includes("/auth/logout") ||
+      path.includes("/auth/me");
 
-    if (!isChangePassword && !isLogout && !isMe) {
+    if (!isEscapeHatch) {
       return res.status(403).json({
-        error: "Forbidden: You must change your password before accessing this resource.",
+        error:
+          "Forbidden: You must change your password before accessing this resource.",
         mustChangePassword: true,
       });
     }
@@ -91,24 +89,23 @@ export const requireAuth = async (
   return next();
 };
 
-/**
- * Factory function to create role-based access control middleware.
- * Ensures strict role separation based on the input matrix.
- * @param allowedRoles Array of roles that are allowed to access the endpoint.
- */
+export const normalizeRole = (role: unknown): string =>
+  typeof role === "string" ? role.trim().replace(/[\s-]+/g, "_") : "";
+
+export const hasRole = (role: unknown, allowedRoles: string[]): boolean => {
+  const actual = normalizeRole(role);
+  return allowedRoles.some((allowed) => normalizeRole(allowed) === actual);
+};
+
 export const requireRole = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
+    if (!req.user || !hasRole(req.user.role, allowedRoles)) {
       return res.status(403).json({ error: "Forbidden: Insufficient permissions" });
     }
     next();
   };
 };
 
-/**
- * Middleware to verify ticket ownership for Requesters.
- * Returns 404 to prevent information leakage if unauthorized.
- */
 export const verifyTicketOwnership = async (
   req: Request,
   res: Response,
@@ -118,8 +115,7 @@ export const verifyTicketOwnership = async (
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  // IT Staff and Admins bypass Requester-level ownership check
-  if (req.user.role === "IT Staff" || req.user.role === "Administrator") {
+  if (hasRole(req.user.role, ["IT_Staff", "Administrator"])) {
     return next();
   }
 
@@ -141,7 +137,7 @@ export const verifyTicketOwnership = async (
 
     const reqId = ticket.requesterId ?? (ticket as any).requesterUserId;
     if (reqId !== req.user.id) {
-      return res.status(404).json({ error: "Ticket not found" }); // IDOR protection
+      return res.status(404).json({ error: "Ticket not found" });
     }
 
     return next();

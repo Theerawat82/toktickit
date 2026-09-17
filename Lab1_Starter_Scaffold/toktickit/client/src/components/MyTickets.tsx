@@ -44,7 +44,7 @@ interface TicketFilterParams {
   page?: number;
   limit?: number;
 }
-const ZEN = {
+export const ZEN = {
   primary: "#006B3C",
   secondary: "#0B7A46",
   paleBg: "#EAF6EF",
