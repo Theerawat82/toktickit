@@ -8,6 +8,7 @@ import MyTickets from "./components/MyTickets.js";
 import RequesterTicketDetail from "./components/RequesterTicketDetail.js";
 import StaffTicketDetail from "./components/StaffTicketDetail.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
+import UserManagement from "./components/UserManagement.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
@@ -60,14 +61,29 @@ export default function App() {
           <div className="text-end">
             <div className="fw-bold">{user?.name}</div>
             <div className="small text-muted mb-2">{user?.role}</div>
-            <button className="btn btn-sm btn-outline-danger" onClick={logout}>
-              Logout
-            </button>
+            
+            <div className="d-flex gap-2 justify-content-end">
+              {user?.role === "Administrator" && (
+                <a href="#admin/users" className="btn btn-sm btn-outline-primary">
+                  User Management
+                </a>
+              )}
+              {user?.role === "Administrator" && (
+                <a href="#" className="btn btn-sm btn-outline-secondary">
+                  Queue
+                </a>
+              )}
+              <button className="btn btn-sm btn-outline-danger" onClick={logout}>
+                Logout
+              </button>
+            </div>
           </div>
         </div>
 
         <>
-          {ticketId ? (
+          {currentHash === "#admin/users" && user?.role === "Administrator" ? (
+            <UserManagement />
+          ) : ticketId ? (
             user?.role === "IT_Staff" || user?.role === "Administrator" ? (
               <StaffTicketDetail ticketId={ticketId} />
             ) : (
