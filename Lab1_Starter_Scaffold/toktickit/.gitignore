@@ -26,3 +26,7 @@ client/src/**/*.js.map
 
 server/uploads/*
 !server/uploads/.gitkeep
+
+repomix-output.xml
+issue6-diff.txt
+issue6-diff-full.txt
