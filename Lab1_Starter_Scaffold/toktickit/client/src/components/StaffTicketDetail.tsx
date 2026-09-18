@@ -317,10 +317,10 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
 
             {activeTab === "notes" && (
               <div className="card" style={{ borderColor: ZEN.warning }}>
-                <div className="card-header fw-bold" style={{ backgroundColor: "#FFF8F1", color: ZEN.warning }}>
+                <div className="card-header fw-bold" style={{ backgroundColor: "#FEF0C7", color: ZEN.warning }}>
                   Internal Notes (Not visible to Requester)
                 </div>
-                <div className="card-body p-0" style={{ backgroundColor: "#FFFCFA" }}>
+                <div className="card-body p-0" style={{ backgroundColor: "#FEF0C7" }}>
                   {notes.length === 0 ? (
                     <div className="p-4 text-center text-muted small">No internal notes yet.</div>
                   ) : (
@@ -337,7 +337,7 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
                     </ul>
                   )}
                 </div>
-                <div className="card-footer py-3" style={{ backgroundColor: "#FFF8F1" }}>
+                <div className="card-footer py-3" style={{ backgroundColor: "#FEF0C7" }}>
                   <form onSubmit={handlePostNote}>
                     <textarea className="form-control mb-2" placeholder="Write an internal note…" rows={3} value={noteContent} onChange={(e) => setNoteContent(e.target.value)} disabled={noteLoading} />
                     {noteError && <div className="small text-danger mb-2">{noteError}</div>}
