@@ -3,15 +3,15 @@ import { getPrisma } from "../prisma.js";
 import path from "path";
 import fs from "fs";
 
+import { requireAuth, hasRole } from "../middleware/auth.js";
+
 const router = Router();
+router.use(requireAuth);
 
 // GET /api/attachments/:id (Metadata)
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
     if (isNaN(attachmentId)) {
@@ -28,8 +28,12 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
-    if (attachment.ticket.requesterUserId !== Number(requesterId)) {
-      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+    // IT Staff and Admins bypass Requester-level ownership check
+    if (!hasRole(req.user.role, ["IT_Staff", "Administrator"])) {
+      if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
+          (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
     }
 
     // Even if removed, metadata might be requested by the frontend to show "Removed" state.
@@ -47,10 +51,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 // GET /api/attachments/:id/download
 router.get("/:id/download", async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
     if (isNaN(attachmentId)) {
@@ -67,8 +68,12 @@ router.get("/:id/download", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
-    if (attachment.ticket.requesterUserId !== Number(requesterId)) {
-      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
+    if (!hasRole(req.user.role, ["IT_Staff", "Administrator"])) {
+      if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
+          (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
     }
 
     if (attachment.isRemoved) {
@@ -91,10 +96,7 @@ router.get("/:id/download", async (req: Request, res: Response) => {
 // POST /api/attachments/:id/remove
 router.post("/:id/remove", async (req: Request, res: Response) => {
   try {
-    const requesterId = req.header("x-requester-id");
-    if (!requesterId || isNaN(Number(requesterId))) {
-      return res.status(403).json({ error: "Missing or invalid x-requester-id header" });
-    }
+    const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
     if (isNaN(attachmentId)) {
@@ -116,8 +118,13 @@ router.post("/:id/remove", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Attachment not found" });
     }
 
-    if (attachment.ticket.requesterUserId !== Number(requesterId)) {
-      return res.status(403).json({ error: "Forbidden: You do not own this ticket" });
+    // Security: Return 404 (not 403) on ownership failure to prevent IDOR enumeration.
+    if (!hasRole(req.user.role, ["IT_Staff", "Administrator"])) {
+      
+      if ((attachment.ticket as any).requesterId !== Number(requesterId) &&
+          (attachment.ticket as any).requesterUserId !== Number(requesterId)) {
+        return res.status(404).json({ error: "Attachment not found" });
+      }
     }
 
     if (attachment.isRemoved) {

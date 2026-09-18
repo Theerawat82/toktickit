@@ -7,6 +7,11 @@ import categoriesRouter from "./routes/categories.js";
 import relatedSystemsRouter from "./routes/relatedSystems.js";
 import ticketsRouter from "./routes/tickets.js";
 import attachmentsRouter from "./routes/attachments.js";
+import usersRouter from "./routes/users.js";
+
+import adminUsersRouter from "./routes/adminUsers.js";
+
+import { requireAuth, requireRole } from "./middleware/auth.js";
 
 // The Express app is exported separately from app.listen() (see index.ts) so
 // Supertest can import `app` without opening a port. Do not merge these files.
@@ -19,6 +24,12 @@ app.use(express.json());
 // Issue 2 — Health check
 // ---------------------------------------------------------------------------
 app.use("/api", healthRouter);
+
+// ---------------------------------------------------------------------------
+// Issue 3 — Authentication
+// ---------------------------------------------------------------------------
+import authRouter from "./routes/auth.js";
+app.use("/api/auth", authRouter);
 
 // ---------------------------------------------------------------------------
 // Issue 3 — Requester context (GET /api/requesters?active=true)
@@ -45,6 +56,21 @@ app.use("/api/tickets", ticketsRouter);
 // Issue 6 — Attachments
 // ---------------------------------------------------------------------------
 app.use("/api/attachments", attachmentsRouter);
+
+// ---------------------------------------------------------------------------
+// Issue 6 — Staff user list (GET /api/users/staff)
+// ---------------------------------------------------------------------------
+app.use("/api/users", usersRouter);
+
+
+
+// ---------------------------------------------------------------------------
+
+// Issue 8 — Admin User Management (GET/POST/PATCH /api/admin/users)
+
+// ---------------------------------------------------------------------------
+
+app.use("/api/admin/users", requireAuth, requireRole(["Administrator"]), adminUsersRouter);
 
 export { app };
 export default app;

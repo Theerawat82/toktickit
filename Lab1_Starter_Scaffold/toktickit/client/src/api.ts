@@ -1,4 +1,23 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+export const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
+export async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(options.headers);
+  const token = localStorage.getItem("token");
+  
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  // Set default content type for JSON if body is provided and not FormData
+  if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  return fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+}
 
 export interface Category {
   id: number;
@@ -17,7 +36,7 @@ export interface SystemStatus {
 // Throwing on failure lets the UI show a single Offline/error state.
 export async function checkSystem(): Promise<SystemStatus> {
   try {
-    const healthRes = await fetch(`${API_URL}/api/health`);
+    const healthRes = await apiFetch(`/api/health`);
     if (!healthRes.ok) {
       throw new Error("Backend is offline");
     }
@@ -27,7 +46,7 @@ export async function checkSystem(): Promise<SystemStatus> {
       throw new Error("Unexpected service name from backend");
     }
 
-    const categoriesRes = await fetch(`${API_URL}/api/categories`);
+    const categoriesRes = await apiFetch(`/api/categories`);
     if (!categoriesRes.ok) {
       throw new Error("Failed to fetch categories");
     }
@@ -83,8 +102,7 @@ export interface TicketFilterParams {
 }
 
 export async function fetchTickets(
-  params: TicketFilterParams,
-  requesterId: number
+  params: TicketFilterParams
 ): Promise<TicketListResponse> {
   const query = new URLSearchParams();
   if (params.search) query.set("search", params.search);
@@ -95,13 +113,75 @@ export async function fetchTickets(
   query.set("page", String(params.page ?? 1));
   query.set("limit", String(params.limit ?? 8));
 
-  const res = await fetch(`/api/tickets?${query.toString()}`, {
-    headers: { "x-requester-id": String(requesterId) }
-  });
+  const res = await apiFetch(`/api/tickets?${query.toString()}`);
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
     throw new Error(errData.error || "Failed to fetch tickets");
+  }
+
+  return res.json();
+}
+
+// Issue 6 — Staff Ticket Queue API
+export interface StaffTicket {
+  id: number;
+  ticketNumber: string;
+  summary: string;
+  categoryId: number;
+  category: { id: number; name: string } | null;
+  requestedPriority: string;
+  itPriority: string;
+  currentStatus: string;
+  requester: { id: number; name: string } | null;
+  owner: { id: number; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StaffTicketListMeta {
+  totalItems: number;
+  page: number;
+  totalPages: number;
+  pageSize: number;
+}
+
+export interface StaffTicketListResponse {
+  data: StaffTicket[];
+  pagination: StaffTicketListMeta;
+}
+
+export interface StaffTicketFilterParams {
+  search?: string;
+  category?: string;
+  status?: string;
+  itPriority?: string;
+  ownerId?: number;
+  sort?: string;
+  order?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export async function fetchStaffQueue(
+  params: StaffTicketFilterParams
+): Promise<StaffTicketListResponse> {
+  const query = new URLSearchParams();
+  if (params.search) query.set("search", params.search);
+  if (params.category) query.set("category", params.category);
+  if (params.status) query.set("status", params.status);
+  if (params.itPriority) query.set("itPriority", params.itPriority);
+  if (params.ownerId !== undefined) query.set("ownerId", String(params.ownerId));
+  if (params.sort) query.set("sort", params.sort);
+  if (params.order) query.set("order", params.order);
+  query.set("page", String(params.page ?? 1));
+  query.set("pageSize", String(params.pageSize ?? 20));
+
+  const res = await apiFetch(`/api/tickets/queue?${query.toString()}`);
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to fetch staff queue");
   }
 
   return res.json();

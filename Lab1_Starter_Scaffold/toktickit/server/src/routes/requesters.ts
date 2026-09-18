@@ -10,13 +10,15 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma();
 
-    // Build optional where filter
-    const where: { isActive?: boolean } = {};
+    // Build optional where filter — scope to Requester role only
+    const where: { role: "Requester"; isActive?: boolean } = {
+      role: "Requester",
+    };
     if (req.query.active !== undefined) {
       where.isActive = req.query.active === "true";
     }
 
-    const requesters = await prisma.requesterUser.findMany({
+    const requesters = await prisma.user.findMany({
       where,
       select: { id: true, name: true, email: true, isActive: true },
       orderBy: { id: "asc" },

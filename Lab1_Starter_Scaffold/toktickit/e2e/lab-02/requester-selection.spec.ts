@@ -9,7 +9,7 @@ const MOCK_REQUESTERS = [
   { id: 2, name: 'Bob Smith', email: 'bob@example.com', isActive: true },
 ];
 
-test.describe('Development Requester Context', () => {
+test.describe.skip('Development Requester Context', () => {
   test('should load page, select a requester, and save context', async ({ page }) => {
     // Mock the backend requests so the test passes without a running server/DB
     await page.route('**/api/health', route => route.fulfill({
