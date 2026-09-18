@@ -142,6 +142,20 @@ test.describe('Admin User Management', () => {
 
     // Close the modal
     await page.click('button.btn-close');
+
+    // --- BR-14: Cannot remove last Administrator ---
+    await adminRow.locator('button:has-text("Edit")').click();
+
+    // Attempt to change role to IT Staff
+    await page.selectOption('#userRole', 'IT_Staff');
+    await page.click('button:has-text("Save User")');
+
+    // Verify error message is shown
+    await expect(page.locator('.alert-danger')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('.alert-danger')).toContainText(/last active Administrator/i);
+
+    // Close the modal
+    await page.click('button.btn-close');
   });
 
   test('Non-Administrator Blocked from User Management', async ({ page }) => {
