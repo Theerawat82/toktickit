@@ -46,7 +46,7 @@ test.describe('IT Staff Ticket Flow', () => {
     // StaffTicketDetail renders the ticketNumber in an <h4>
     await expect(page.locator('h4:has-text("TKT-001")')).toBeVisible({ timeout: 10000 });
     // It also renders the summary
-    await expect(page.locator('text=Login issue')).toBeVisible();
+    await expect(page.getByText('Login issue', { exact: true })).toBeVisible();
 
     // --- AC-05: Open the "Service Actions" tab to interact with dropdowns ---
     // Tabs are rendered as <button> with text "⚙️ Service Actions"
@@ -77,7 +77,7 @@ test.describe('IT Staff Ticket Flow', () => {
     // Submit button text is "Post Comment"
     await page.click('button:has-text("Post Comment")');
     // Verify the comment appears in the thread
-    await expect(page.locator('text=Investigating the login issue.')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Investigating the login issue.').first()).toBeVisible({ timeout: 10000 });
 
     // --- BR-10: Add an Internal Note ---
     // Switch to the Internal Notes tab

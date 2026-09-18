@@ -54,7 +54,8 @@ test.describe('Admin User Management', () => {
     await page.selectOption('#userRole', 'Requester');
     await page.fill('#userPassword', 'NewTestPassword1!');
 
-    await page.click('button:has-text("Save User")');
+    // Save button text is "Save User"
+    await page.locator('button:has-text("Save User")').filter({ visible: true }).click();
 
     // Verify success
     await expect(page.locator('.alert-success:has-text("User created successfully")').filter({ visible: true })).toBeVisible({ timeout: 10000 });
@@ -71,7 +72,7 @@ test.describe('Admin User Management', () => {
 
     await page.fill('#userName', 'Edited Test User');
     await page.selectOption('#userRole', 'IT_Staff');
-    await page.click('button:has-text("Save User")');
+    await page.locator('button:has-text("Save User")').filter({ visible: true }).click();
 
     await expect(page.locator('.alert-success:has-text("User updated successfully")').filter({ visible: true })).toBeVisible({ timeout: 10000 });
     await page.waitForTimeout(1800);
@@ -136,7 +137,7 @@ test.describe('Admin User Management', () => {
     await adminRow.locator('button:has-text("Edit")').click();
 
     await page.selectOption('#userRole', 'IT_Staff');
-    await page.click('button:has-text("Save User")');
+    await page.locator('button:has-text("Save User")').filter({ visible: true }).click();
 
     await expect(page.locator('.alert-danger').filter({ visible: true })).toBeVisible({ timeout: 10000 });
     await expect(page.locator('.alert-danger').filter({ visible: true })).toContainText(/last active Administrator/i);
