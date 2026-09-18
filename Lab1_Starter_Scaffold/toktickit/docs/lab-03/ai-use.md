@@ -4,6 +4,7 @@
 - Claude / Gemini / Antigravity IDE
 
 ## Key Prompts Table
+
 | No. | Purpose | Prompt Summary | Output Quality / Action Taken |
 |---|---|---|---|
 | 1 | Architecture & Docs (Issue 1) | "Generate and update technical specifications for Lab 3 including User, Comment, InternalNote models, and update docs/lab-03/specification.md." | Generated complete initial Lab 3 technical documentation and architectural design. |
@@ -14,14 +15,18 @@
 | 6 | Frontend Auth & App Shell (Issue 3) | "Create Login and Change Password screens in Zen Green style, integrate auth context, and update application shell to render current user identity, role badge, and logout action." | Successfully built responsive auth screens with clear validation and loading states. Implemented protected routing guards on the client. |
 | 7 | Server-side RBAC Authorization Middleware (Issue 4) | "Create server-side role-based authorization middleware enforcing the spec matrix across endpoints. Ensure IDOR protection on tickets/attachments and suppress information leakage." | Implemented `requireRole` and ownership check middlewares. Enforced strict 403 Forbidden and safe 404 Not Found status codes across all protected endpoints. |
 | 8 | Authorization Test Alignment & Traceability (Issue 4) | "Fix traceability references in `authorization.api.test.ts` and `tickets.ts` (AC-04 to AC-06, BR-05 to BR-11/BR-12 for status restrictions) and update `tests.md` traceability matrix." | Successfully aligned code comments and test block labels with `specification.md`. Maintained 100% green test suite (43 server + 37 client tests) without test regression. |
+| 9 | IT Staff Ticket Operations & Notes (Issue 6/7) | "Implement IT Staff Ticket Detail endpoints and UI for claim/reassign ownership, IT Priority, status transitions matrix, and tabbed Public Comments vs visually distinct Internal Notes." | Successfully delivered IT Staff operational views, enforced status transition rules, and visually segregated public comments from private internal notes. |
+| 10 | Admin User Management & Safety Guardrails (Issue 8) | "Build Admin User Management API and UI with search, role filters, user creation/edit, initial password reset, and safety constraints preventing self-deactivation and last Admin removal." | Implemented complete Admin control panel with Zen Green design system and robust server-side safety guardrails. All admin test cases passed. |
 
 ---
 
 ## My Reflection
 
-**ประเด็นเรียนรู้สำคัญจากการใช้งาน AI Specification & Coding Agent:**
+**1. Reflection on Specification Agent:**
+* **Spec Driven Development (Spec DD):** การใช้ AI ช่วยวางโครงสร้างเอกสาร Specification (`specification.md`, `ui-spec.md`, `api-spec.md`) ตั้งแต่ต้น ช่วยให้เห็นขอบเขตงาน (Scope), Business Rules (BR) และ Acceptance Criteria (AC) ที่ชัดเจนก่อนลงมือเขียนโค้ด
+* **Traceability & Consistency:** AI ช่วยตรวจสอบความสอดคล้องระหว่างข้อกำหนดและแผนการทดสอบ (`tests.md`) ทำให้สามารถกำกับรหัสอ้างอิง (เช่น AC-01–AC-06 และ BR-01–BR-12) ให้ตรงกันแบบ 100% ทั้งในเอกสาร โค้ด และ Test Suites ลดความสับสนระหว่างพัฒนาและเตรียมการ Peer Review ได้อย่างมีประสิทธิภาพ
 
-* **Schema Evolution & Zero Data Loss:** การปรับปรุงโครงสร้าง Database จากโมเดล `Requester` ไปเป็น `User` พร้อมระบบบทบาท (Roles) ได้เรียนรู้การกำกับ AI ในการเขียน Custom Migration SQL เพื่อจัดการ Foreign Key Constraints โดยเน้นไม่ให้เกิด Data Loss กับข้อมูลตั๋วเดิม 21 รายการในระบบ
-* **Regression Testing & Continuous Verification:** การเปลี่ยนโครงสร้างระบบเข้าสู่ Authentication ส่งผลกระทบต่อ API Routes และ Test Suites เดิม การสั่งงาน AI ร่วมกับการรัน `npm test` เพื่อควบคุมคุณภาพแบบ Zero Test Regression ช่วยให้ตรวจพบและแก้ไข Bug ได้รวดเร็วและครอบคลุมทุก Edge Case
-* **Security vs. UX Realization:** ได้เรียนรู้ว่ามาตรการความปลอดภัยที่แท้จริงต้องเกิดขึ้นที่ Server-side ผ่าน Middleware และ Authorization Matrix เสมอ การซ่อน UI Elements (เช่น ปุ่มกดหรือ Nav Links) เป็นเพียงการปรับปรุง UX ไม่ใช่การควบคุม Security
-* **Traceability Integrity:** การควบคุมให้ Code Comments, Unit/API Tests และเอกสาร Specification (`specification.md`, `tests.md`) อ้างอิงเลข AC และ BR ตรงกันทุกจุด 100% ช่วยเพิ่มความโปร่งใส ป้องกันความเข้าใจผิดระหว่างพัฒนา และทำให้กระบวนการ Peer Review ผ่านไปได้อย่างมีประสิทธิภาพ
+**2. Reflection on Coding Agent:**
+* **Schema Migration & Zero Data Loss:** ได้เรียนรู้การสั่งงาน Coding Agent ให้ปรับปรุงโครงสร้าง Database จาก `Requester` ไปเป็น `User` พร้อมระบบบทบาท (Roles) ผ่าน Custom Migration SQL โดยไม่ทำให้ข้อมูลเดิมสูญหาย (Zero Data Loss)
+* **Security Guardrails over UI Visibility:** ได้เรียนรู้ว่าการรักษาความปลอดภัยที่แท้จริงต้องควบคุมที่ Server-side Middleware (เช่น RBAC, IDOR Protection, Error Suppression) การซ่อน UI Elements เป็นเพียงเรื่อง UX ไม่ใช่มาตรการความปลอดภัย
+* **Continuous Verification & Zero Regression:** การกำกับ AI เขียนโค้ดควบคู่กับการรัน Test Suite (ทั้ง Server, Client และ E2E) แบบต่อเนื่อง ช่วยตรวจจับและแก้ไข Breaking Changes ได้ทันที ส่งผลให้โปรเจกต์คงสถานะ All Pass ได้ตลอดทุก Issue
