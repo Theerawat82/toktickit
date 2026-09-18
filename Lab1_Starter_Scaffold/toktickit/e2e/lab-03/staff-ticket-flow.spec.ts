@@ -33,16 +33,16 @@ test.describe('IT Staff Ticket Flow', () => {
 
     // Give the debounce/filter time to apply and verify ticket appears
     // The ticket link is rendered as <a href="#ticket/{id}"> with ticketNumber text
-    await expect(page.locator('a:has-text("TKT-001")').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('a:has-text("TKT-001")').filter({ visible: true }).first()).toBeVisible({ timeout: 10000 });
 
     // --- AC-04: Apply a status filter ---
     // StaffTicketQueue: filter-status select
     await page.selectOption('[data-testid="filter-status"]', 'Open');
-    await expect(page.locator('a:has-text("TKT-001")').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('a:has-text("TKT-001")').filter({ visible: true }).first()).toBeVisible({ timeout: 10000 });
 
     // --- AC-05: View Staff Ticket Detail ---
     // Click the ticket link to open StaffTicketDetail
-    await page.locator('a:has-text("TKT-001")').first().click();
+    await page.locator('a:has-text("TKT-001")').filter({ visible: true }).first().click();
     // StaffTicketDetail renders the ticketNumber in an <h4>
     await expect(page.locator('h4:has-text("TKT-001")')).toBeVisible({ timeout: 10000 });
     // It also renders the summary
