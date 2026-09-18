@@ -23,7 +23,7 @@ test.describe('Authentication & RBAC', () => {
 
     // Should render main app (Ticket Queue for Admin)
     await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
-    await expect(page.locator('text=Admin User')).toBeVisible();
+    await expect(page.locator('text=Admin User').first()).toBeVisible();
   });
 
   test('Invalid Login Handling', async ({ page }) => {
