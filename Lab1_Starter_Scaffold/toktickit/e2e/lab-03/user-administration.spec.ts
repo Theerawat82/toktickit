@@ -16,6 +16,8 @@ test.describe('Admin User Management', () => {
   });
 
   test('User Administration Flow', async ({ page }) => {
+    const testEmail = `newtestuser_${Date.now()}@toktickit.com`;
+
     // --- AC-08: Administrator can log in and navigate to User Management ---
     await page.fill('input[type="email"]', 'admin@toktickit.com');
     await page.fill('input[type="password"]', 'Password123!');
@@ -50,7 +52,7 @@ test.describe('Admin User Management', () => {
     await page.click('button:has-text("+ Create User")');
 
     await page.fill('#userName', 'New Test User');
-    await page.fill('#userEmail', 'newtestuser@toktickit.com');
+    await page.fill('#userEmail', testEmail);
     await page.selectOption('#userRole', 'Requester');
     await page.fill('#userPassword', 'NewTestPassword1!');
 
@@ -64,10 +66,10 @@ test.describe('Admin User Management', () => {
     await expect(page.locator('h2:has-text("Administrator User Management")')).toBeVisible({ timeout: 5000 });
 
     // Verify user appears in table/card list
-    await expect(page.locator('text="newtestuser@toktickit.com"').filter({ visible: true }).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(`text="${testEmail}"`).filter({ visible: true }).first()).toBeVisible({ timeout: 10000 });
 
     // --- AC-09: Edit the newly created user ---
-    const userRow = page.locator('tr, .card').filter({ hasText: 'newtestuser@toktickit.com' }).filter({ visible: true }).first();
+    const userRow = page.locator('tbody tr').filter({ hasText: testEmail }).filter({ visible: true }).first();
     await userRow.locator('button:has-text("Edit")').click();
 
     await page.fill('#userName', 'Edited Test User');
@@ -79,7 +81,7 @@ test.describe('Admin User Management', () => {
     await expect(page.locator('text="Edited Test User"').filter({ visible: true }).first()).toBeVisible({ timeout: 10000 });
 
     // --- BR-13: Reset password forces mustChangePassword on next login ---
-    const editedRow = page.locator('tr, .card').filter({ hasText: 'newtestuser@toktickit.com' }).filter({ visible: true }).first();
+    const editedRow = page.locator('tbody tr').filter({ hasText: testEmail }).filter({ visible: true }).first();
     await editedRow.locator('button:has-text("Edit")').click();
 
     await page.fill('input[placeholder="New Password"]', 'ResetPassword123!');
@@ -95,7 +97,7 @@ test.describe('Admin User Management', () => {
     await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible();
 
     // Log in as the new user with the reset password
-    await page.fill('input[type="email"]', 'newtestuser@toktickit.com');
+    await page.fill('input[type="email"]', testEmail);
     await page.fill('input[type="password"]', 'ResetPassword123!');
     await page.click('button[type="submit"]');
 
@@ -122,7 +124,7 @@ test.describe('Admin User Management', () => {
     await expect(page.locator('h2:has-text("Administrator User Management")')).toBeVisible({ timeout: 10000 });
 
     // --- BR-15: Administrator cannot deactivate themselves ---
-    const adminRow = page.locator('tr, .card').filter({ hasText: 'admin@toktickit.com' }).filter({ visible: true }).first();
+    const adminRow = page.locator('tbody tr').filter({ hasText: 'admin@toktickit.com' }).filter({ visible: true }).first();
     await adminRow.locator('button:has-text("Edit")').click();
 
     await page.click('button:has-text("Deactivate")');

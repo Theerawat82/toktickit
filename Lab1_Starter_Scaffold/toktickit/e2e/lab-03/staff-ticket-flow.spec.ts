@@ -87,7 +87,7 @@ test.describe('IT Staff Ticket Flow', () => {
     // Submit button text is "Add Internal Note"
     await page.click('button:has-text("Add Internal Note")');
     // Verify internal note appears
-    await expect(page.locator('text=User account might be locked in AD.')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=User account might be locked in AD.').first()).toBeVisible({ timeout: 10000 });
 
     // --- BR-11: Log out and verify Requester cannot see Internal Notes ---
     // Go back to queue first (navigate to hash root)
@@ -106,7 +106,7 @@ test.describe('IT Staff Ticket Flow', () => {
 
     // Navigate directly to TKT-001 via the ticket link (RequesterTicketDetail doesn't show Internal Notes tab)
     // Find the ticket and click it — but as a Requester, TKT-001 was submitted by user1
-    await page.locator('a:has-text("TKT-001")').first().click();
+    await page.locator('a:has-text("TKT-001")').filter({ visible: true }).first().click();
     await expect(page.locator('h4:has-text("TKT-001")')).toBeVisible({ timeout: 10000 });
 
     // Verify the "Internal Notes" tab is NOT visible in RequesterTicketDetail
@@ -114,6 +114,6 @@ test.describe('IT Staff Ticket Flow', () => {
     await expect(page.locator('button:has-text("Internal Notes")')).not.toBeVisible();
 
     // Verify internal note content is hidden from Requester
-    await expect(page.locator('text=User account might be locked in AD.')).not.toBeVisible();
+    await expect(page.locator('text=User account might be locked in AD.').first()).not.toBeVisible();
   });
 });
