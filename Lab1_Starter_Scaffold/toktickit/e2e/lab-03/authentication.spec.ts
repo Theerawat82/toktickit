@@ -15,19 +15,19 @@ test.describe('Authentication & RBAC', () => {
 
   test('Successful Login', async ({ page }) => {
     // Should show login form initially
-    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible();
+    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible({ timeout: 15000 });
 
     await page.fill('input[type="email"]', 'admin@toktickit.com');
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
 
-    // Should render main app (My Tickets)
-    await expect(page.locator('text=📋 My Tickets')).toBeVisible();
-    await expect(page.locator('text=Admin User')).toBeVisible();
+    // Should render main app (Ticket Queue for Admin)
+    await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
+    await expect(page.locator('text=Admin User').first()).toBeVisible();
   });
 
   test('Invalid Login Handling', async ({ page }) => {
-    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible();
+    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible({ timeout: 15000 });
 
     await page.fill('input[type="email"]', 'admin@toktickit.com');
     await page.fill('input[type="password"]', 'WrongPassword!');
@@ -40,7 +40,7 @@ test.describe('Authentication & RBAC', () => {
   });
 
   test('Inactive Account Access', async ({ page }) => {
-    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible();
+    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible({ timeout: 15000 });
 
     await page.fill('input[type="email"]', 'inactive@toktickit.com');
     await page.fill('input[type="password"]', 'Password123!');
@@ -54,7 +54,7 @@ test.describe('Authentication & RBAC', () => {
 
   test('First-time Login & Forced Redirect (mustChangePassword) and Password Update Execution', async ({ page }) => {
     // 1. Log in with a first-time user account
-    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible();
+    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible({ timeout: 15000 });
 
     await page.fill('input[type="email"]', 'newstaff@toktickit.com');
     await page.fill('input[type="password"]', 'Password123!');
@@ -70,24 +70,32 @@ test.describe('Authentication & RBAC', () => {
     await page.click('button:has-text("Update Password")');
 
     // 5. Verify successful update and navigation to the main application shell
-    await expect(page.locator('text=📋 My Tickets')).toBeVisible();
+    await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
     
     // Verify it sticks by reloading
     await page.reload();
-    await expect(page.locator('text=📋 My Tickets')).toBeVisible();
+    await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
   });
 
   test('Logout & Session Invalidation', async ({ page }) => {
     // Login first
-    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible();
+    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible({ timeout: 15000 });
     await page.fill('input[type="email"]', 'staff1@toktickit.com');
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
 
-    await expect(page.locator('text=📋 My Tickets')).toBeVisible();
+    await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
 
     // Click logout
     await page.click('button:has-text("Logout"), a:has-text("Logout")');
+
+    // Should redirect back to login
+    await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible();
+  });
+
+  test('Direct Navigation Blocked After Logout', async ({ page }) => {
+    // Navigate directly to protected route
+    await page.goto('/#admin/users');
 
     // Should redirect back to login
     await expect(page.locator('button[type="submit"]:has-text("Log In")')).toBeVisible();

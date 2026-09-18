@@ -342,7 +342,39 @@ const UserManagement: React.FC = () => {
                         <span className="fw-bold text-danger d-block">Deactivate User</span>
                         <small className="text-muted">Prevents the user from logging in.</small>
                       </div>
-                      <button type="button" className="btn btn-outline-danger" onClick={() => { setFormData({...formData, isActive: false}); handleEditSubmit(new Event('submit') as any); }}>
+                      <button type="button" className="btn btn-outline-danger" onClick={async (e) => { 
+                        e.preventDefault();
+                        if (!selectedUser) return;
+                        setFormError(null);
+                        setFormSuccess(null);
+                        setSubmitting(true);
+                        try {
+                          const payload = {
+                            name: formData.name,
+                            email: formData.email,
+                            role: formData.role === "IT_Staff" ? "IT Staff" : formData.role,
+                            isActive: false,
+                          };
+                          const res = await apiFetch(`/api/admin/users/${selectedUser.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.error || "Failed to update user");
+                          
+                          setFormSuccess("User updated successfully");
+                          fetchUsers();
+                          setTimeout(() => {
+                            setShowEditModal(false);
+                            setFormSuccess(null);
+                          }, 1500);
+                        } catch (err: any) {
+                          setFormError(err.message);
+                        } finally {
+                          setSubmitting(false);
+                        }
+                      }}>
                         Deactivate
                       </button>
                     </div>

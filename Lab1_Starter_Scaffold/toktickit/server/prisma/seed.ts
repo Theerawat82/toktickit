@@ -124,7 +124,10 @@ async function main() {
     // 4. Seed Tickets
     const ticket1 = await prisma.ticket.upsert({
       where: { ticketNumber: "TKT-001" },
-      update: {},
+      update: {
+        status: "Open",
+        currentStatus: "Open",
+      },
       create: {
         ticketNumber: "TKT-001",
         summary: "Login issue",
@@ -135,6 +138,7 @@ async function main() {
         relatedSystemId: system1.id,
         itPriority: "High",
         status: "Open",
+        currentStatus: "Open",
         ticketOwnerId: staff1.id,
       },
     });
