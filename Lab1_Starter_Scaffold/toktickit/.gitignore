@@ -30,3 +30,10 @@ server/uploads/*
 repomix-output.xml
 issue6-diff.txt
 issue6-diff-full.txt
+# Playwright and Debug logs
+playwright-report/
+test-results/
+client/test-results/
+test-output*.txt
+artifacts/debug-*.png
+artifacts/screenshot.png
