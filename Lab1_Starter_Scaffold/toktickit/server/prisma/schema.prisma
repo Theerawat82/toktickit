@@ -160,6 +160,7 @@ model ActionTaken {
   followUpRequired  Boolean   @default(false)
   followUpNote      String?
   attachmentNotes   String?
+  version           Int       @default(1)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 

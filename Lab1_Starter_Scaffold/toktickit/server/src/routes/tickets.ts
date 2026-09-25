@@ -1444,5 +1444,171 @@ router.get("/:id/comments", verifyTicketOwnership, async (req: Request, res: Res
 
 
 
+// POST /api/tickets/:id/actions
+// AC-01: IT Staff and Admins can create an Action Taken
+router.post("/:id/actions", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+    const { actionDescription, result, followUpRequired, followUpNote, attachmentNotes, performedById, actionDateTime, ticketId: bodyTicketId, version, id } = req.body;
+
+    if (performedById !== undefined || actionDateTime !== undefined || bodyTicketId !== undefined || version !== undefined || id !== undefined) {
+      return res.status(400).json({ error: "Cannot provide read-only or server-generated fields" });
+    }
+
+    if (!actionDescription || typeof actionDescription !== "string" || actionDescription.trim() === "") {
+      return res.status(400).json({ error: "actionDescription is required" });
+    }
+    if (!result || typeof result !== "string" || result.trim() === "") {
+      return res.status(400).json({ error: "result is required" });
+    }
+    if (typeof followUpRequired !== "boolean") {
+      return res.status(400).json({ error: "followUpRequired must be a boolean" });
+    }
+    if (followUpRequired && (!followUpNote || typeof followUpNote !== "string" || followUpNote.trim() === "")) {
+      return res.status(400).json({ error: "followUpNote is required when followUpRequired is true" });
+    }
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    const action = await prisma.$transaction(async (tx) => {
+      const created = await tx.actionTaken.create({
+        data: {
+          ticketId,
+          actionDescription: actionDescription.trim(),
+          result: result.trim(),
+          followUpRequired,
+          followUpNote: followUpRequired ? followUpNote.trim() : null,
+          attachmentNotes: attachmentNotes ? attachmentNotes.trim() : null,
+          performedById: req.user.id
+        },
+        include: { performedBy: { select: { id: true, name: true, role: true } } }
+      });
+      await tx.ticket.update({
+        where: { id: ticketId },
+        data: { updatedAt: new Date() }
+      });
+      return created;
+    });
+
+    res.status(201).json(action);
+  } catch (error) {
+    console.error("Failed to create action taken:", error);
+    res.status(500).json({ error: "Failed to create action taken" });
+  }
+});
+
+// PATCH /api/tickets/:id/actions/:actionId
+// Edit Action Taken with concurrency control
+router.patch("/:id/actions/:actionId", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const actionId = Number(req.params.actionId);
+    if (isNaN(ticketId) || isNaN(actionId)) return res.status(400).json({ error: "Invalid ID" });
+
+    const { actionDescription, result, followUpRequired, followUpNote, attachmentNotes, version, performedById, actionDateTime, ticketId: bodyTicketId, id } = req.body;
+
+    if (performedById !== undefined || actionDateTime !== undefined || bodyTicketId !== undefined || id !== undefined) {
+      return res.status(400).json({ error: "Cannot change read-only fields" });
+    }
+    if (version === undefined || typeof version !== "number") {
+      return res.status(400).json({ error: "version is required for updates" });
+    }
+    if (!actionDescription || typeof actionDescription !== "string" || actionDescription.trim() === "") {
+      return res.status(400).json({ error: "actionDescription is required" });
+    }
+    if (!result || typeof result !== "string" || result.trim() === "") {
+      return res.status(400).json({ error: "result is required" });
+    }
+    if (typeof followUpRequired !== "boolean") {
+      return res.status(400).json({ error: "followUpRequired must be a boolean" });
+    }
+    if (followUpRequired && (!followUpNote || typeof followUpNote !== "string" || followUpNote.trim() === "")) {
+      return res.status(400).json({ error: "followUpNote is required when followUpRequired is true" });
+    }
+
+    const prisma = getPrisma();
+    
+    // Check ticket access and action existence
+    const currentAction = await prisma.actionTaken.findUnique({ 
+      where: { id: actionId },
+      include: { performedBy: { select: { id: true, name: true, role: true } } }
+    });
+    if (!currentAction || currentAction.ticketId !== ticketId) {
+      return res.status(404).json({ error: "Action not found or mismatch" });
+    }
+
+    // Concurrency Check
+    if (currentAction.version !== version) {
+      return res.status(409).json({ error: "Conflict: This action has been modified by another user.", currentServerRow: currentAction });
+    }
+
+    try {
+      const updatedAction = await prisma.$transaction(async (tx) => {
+        const updateRes = await tx.actionTaken.updateMany({
+          where: { id: actionId, version: version },
+          data: {
+            actionDescription: actionDescription.trim(),
+            result: result.trim(),
+            followUpRequired,
+            followUpNote: followUpRequired ? followUpNote.trim() : null,
+            attachmentNotes: attachmentNotes ? attachmentNotes.trim() : null,
+            version: { increment: 1 }
+          }
+        });
+        if (updateRes.count === 0) {
+          throw new Error("CONCURRENCY_CONFLICT");
+        }
+        await tx.ticket.update({
+          where: { id: ticketId },
+          data: { updatedAt: new Date() }
+        });
+        return await tx.actionTaken.findUnique({
+          where: { id: actionId },
+          include: { performedBy: { select: { id: true, name: true, role: true } } }
+        });
+      });
+      return res.status(200).json(updatedAction);
+    } catch (e: any) {
+      if (e.message === "CONCURRENCY_CONFLICT") {
+        const latestRow = await prisma.actionTaken.findUnique({ where: { id: actionId }, include: { performedBy: { select: { id: true, name: true, role: true } } } });
+        return res.status(409).json({ error: "Conflict: This action has been modified by another user.", currentServerRow: latestRow });
+      }
+      throw e;
+    }
+
+  } catch (error) {
+    console.error("Failed to update action taken:", error);
+    res.status(500).json({ error: "Failed to update action taken" });
+  }
+});
+
+// GET /api/tickets/:id/actions
+// Requesters can see their own, IT Staff can see any
+router.get("/:id/actions", verifyTicketOwnership, async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    const actions = await prisma.actionTaken.findMany({
+      where: { ticketId },
+      orderBy: { actionDateTime: "asc" },
+      include: { performedBy: { select: { id: true, name: true, role: true } } }
+    });
+
+    res.status(200).json(actions);
+  } catch (error) {
+    console.error("Failed to fetch actions:", error);
+    res.status(500).json({ error: "Failed to fetch actions" });
+  }
+});
+
 export default router;
 
