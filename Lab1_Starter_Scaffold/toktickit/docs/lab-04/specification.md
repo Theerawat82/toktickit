@@ -35,13 +35,23 @@ Stakeholders have identified that merely having a ticket status is insufficient.
 *   **BR-05:** Requesters can only read Actions Taken on their own tickets.
 *   **BR-06 (Resolution Gate Rule):** A Requester marking a problem as resolved only sets an advisory flag (`requesterConfirmedResolved = true`); it DOES NOT change the `currentStatus` to 'Resolved'.
 *   **BR-07 (Concurrency Rule):** Every update to a Ticket must verify the `version` field. Mismatches result in a 409 Conflict.
+*   **BR-08 (Resolution Block Rule):** A ticket cannot be transitioned to the RESOLVED status unless it has at least one associated ActionTaken record.
+*   **BR-09 (Dashboard Calculation Rules):**
+    *   'Requester Open' counts tickets owned by the user in NEW or OPEN states.
+    *   'Requester In Progress' counts tickets owned by the user in IN PROGRESS or WAITING FOR REQUESTER states.
+    *   'IT Staff Unassigned' counts tickets without a `ticketOwnerId`.
+    *   'IT Staff My Assigned' counts tickets assigned to the logged-in user that are not RESOLVED or CLOSED.
+
+### 5.1 Ticket Status-Transition Matrix
+The complete valid status transitions for a ticket are:
+`New -> Open -> In Progress <-> Waiting for Requester -> Resolved -> Closed`
 
 ## 6. UI Specification Summary
 The UI introduces new Dashboard views tailored to user roles (IT Staff vs. Requester) focusing on aggregate data. The Ticket Detail view is expanded to include an Actions Taken list and a creation form for authorized users. States like Loading, Empty, and Forbidden must be handled gracefully, adhering to the "Zen Green" design language. For detailed mockups and requirements, refer to [ui-spec.md](./ui-spec.md).
 
 ## 7. Data Changes
 *   **New Model: `ActionTaken`**
-    *   Fields: `id`, `ticketId` (FK), `performedById` (FK), `actionDescription`, `followUpRequired` (boolean), `followUpNote` (string), `createdAt`.
+    *   Fields: `id`, `ticketId` (FK), `performedById` (FK), `actionDescription`, `result` (String, required), `attachmentNotes` (String, nullable), `followUpRequired` (boolean), `followUpNote` (string), `createdAt`.
 *   **Modified Model: `Ticket`**
     *   Add `version` (integer, default 1) for optimistic concurrency control.
     *   Add `requesterConfirmedResolved` (boolean, default false) for the resolution gate.

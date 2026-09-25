@@ -9,6 +9,8 @@ Creates a new Action Taken for a specific ticket.
     ```json
     {
       "actionDescription": "Restarted the primary database server.",
+      "result": "Server is online and responding normally.",
+      "attachmentNotes": "See attached server_logs.txt for details.",
       "followUpRequired": true,
       "followUpNote": "Monitor CPU usage for the next 24 hours."
     }
@@ -30,6 +32,8 @@ Retrieves a list of Actions Taken for a specific ticket.
         "ticketId": 123,
         "performedById": 45,
         "actionDescription": "Restarted the primary database server.",
+        "result": "Server is online and responding normally.",
+        "attachmentNotes": "See attached server_logs.txt for details.",
         "followUpRequired": true,
         "followUpNote": "Monitor CPU usage for the next 24 hours.",
         "createdAt": "2023-10-27T10:00:00Z"

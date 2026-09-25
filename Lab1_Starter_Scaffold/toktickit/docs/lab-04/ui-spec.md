@@ -19,10 +19,10 @@ The Requester Dashboard provides a focused view, strictly limited to the user's 
 
 ## 3. Actions Taken UI (Ticket Detail View)
 The Ticket Detail page is expanded to include an "Actions Taken" section to track progress.
-*   **List/Table View:** Displays a chronological list of actions taken on the ticket (Date, Performed By, Action Description, Follow-up notes).
+*   **List/Table View:** Displays a chronological list of actions taken on the ticket (Date, Performed By, Action Description, Result, Attachment Notes, Follow-up notes).
     *   *Read-only for Requesters.*
 *   **Create Mode:** A form available *only* to IT Staff and Admins.
-    *   **Fields:** `actionDescription` (textarea), `followUpRequired` (checkbox).
+    *   **Fields:** `actionDescription` (textarea), `result` (input/textarea, required), `attachmentNotes` (input/textarea, optional), `followUpRequired` (checkbox).
     *   **Conditional Field:** `followUpNote` (textarea) becomes visible and required ONLY if `followUpRequired` is checked.
 
 ## 4. States & Design
