@@ -4,6 +4,15 @@ import bcrypt from "bcryptjs";
 const prisma = getPrisma();
 
 async function main() {
+  console.log("Cleaning existing database...");
+  await prisma.attachment.deleteMany();
+  await prisma.internalNote.deleteMany();
+  await prisma.comment.deleteMany();
+  await prisma.ticket.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.relatedSystem.deleteMany();
+  await prisma.category.deleteMany();
+
   // 1. Seed Categories (4 required items)
   const categories = [
     "Account and Access",

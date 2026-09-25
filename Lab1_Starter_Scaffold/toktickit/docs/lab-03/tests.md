@@ -9,32 +9,37 @@ The testing strategy for Lab 3 focuses heavily on Authorization, RBAC boundaries
 
 ## 2. Planned Test Cases Table
 
-| Test ID | Type | Req/AC Mapping | Test Description | Expected Result | Target Test File Path |
-|---------|------|----------------|------------------|-----------------|-----------------------|
-| T-001 | API | FR-01, AC-01, BR-01, BR-02 | Login with valid credentials | 200 OK, returns session token | `server/tests/lab-03/auth.test.ts` |
-| T-002 | API | FR-01, AC-10, BR-03 | Login with invalid credentials or inactive user | 401/403, generic error message | `server/tests/lab-03/auth.test.ts` |
-| T-003 | API | FR-02, AC-02 | API access with `mustChangePassword=true` | 403 Forbidden, prompt to change password | `server/tests/lab-03/auth.middleware.test.ts` |
-| T-004 | API | FR-04, AC-03 | Submit ticket with explicit `requesterId` in body | API ignores body ID, uses Session ID | `server/tests/lab-03/ticket.creation.test.ts` |
-| T-005 | API | FR-08, AC-06, BR-10 | Requester attempts to fetch internal notes | 403 Forbidden | `server/tests/lab-03/notes.auth.test.ts` |
-| T-006 | API | FR-07, AC-05, BR-11 | IT Staff attempts invalid status transition (New to Closed) | 409 Conflict | `server/tests/lab-03/ticket.status.test.ts` |
-| T-007 | API | FR-12, AC-09, BR-13, BR-14 | Admin deactivates last active Admin | 400 Bad Request, safety guard blocks | `server/tests/lab-03/admin.safety.test.ts` |
-| T-008 | UI | FR-03 | Render Admin navigation for IT Staff user | Navigation links are not rendered | `client/src/tests/lab-03/Navigation.test.tsx` |
-| T-009 | E2E | FR-02, AC-02, BR-03, BR-06 | E2E flow: First login forced password change | User cannot skip change screen, login completes after | `e2e/lab-03/auth.spec.ts` |
-| T-010 | E2E | FR-05, FR-06, AC-03, AC-04, BR-08, BR-09 | E2E flow: IT Staff takes ownership of ticket | Ticket owner updates, UI reflects change | `e2e/lab-03/staff.queue.spec.ts` |
-| T-011 | API | FR-09, AC-07, BR-07 | Requester posts public comment on their own ticket | 201 Created with comment object and author info | `server/tests/lab-03/comments-notes.api.test.ts` |
-| T-012 | API | FR-11, AC-08, BR-12, BR-15 | Admin creates new IT Staff user with initial password | 201 Created with user object and mustChangePassword set to true | `server/tests/lab-03/users-admin.api.test.ts` |
-| T-013 | API | FR-03 | Unauthenticated user accesses IT Staff queue | 401 Unauthorized | `server/tests/lab-03/staff-queue.api.test.ts` |
-| T-014 | API | FR-03 | Requester accesses IT Staff queue | 403 Forbidden | `server/tests/lab-03/staff-queue.api.test.ts` |
-| T-015 | API | FR-05, AC-04 | IT Staff fetches queue (happy path) | 200 OK, paginated list with owner mapped | `server/tests/lab-03/staff-queue.api.test.ts` |
-| T-016 | API | FR-05, AC-04 | IT Staff fetches empty queue | 200 OK, empty data array | `server/tests/lab-03/staff-queue.api.test.ts` |
-| T-017 | API | FR-05, AC-04 | IT Staff fetches queue with invalid query params | 200 OK, ignores invalid params | `server/tests/lab-03/staff-queue.api.test.ts` |
-| T-018 | API | FR-05, AC-04 | IT Staff fetches queue with out-of-range page | 200 OK, empty data array on specified page | `server/tests/lab-03/staff-queue.api.test.ts` |
-| T-019 | API | FR-05, AC-04 | Regression test: /queue is not swallowed by /:id | 200 OK, avoids 400 Invalid ticket ID | `server/tests/lab-03/staff-queue.api.test.ts` |
-| T-020 | UI | FR-05, AC-04 | StaffTicketQueue renders filters including Category and Owner | Filters are present in document | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
-| T-021 | UI | FR-05, AC-04 | StaffTicketQueue renders table rows with ticket data | Ticket row and summary displayed | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
-| T-022 | UI | FR-05, AC-04 | StaffTicketQueue displays empty state | "No tickets in queue" message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
-| T-023 | UI | FR-05, AC-04 | StaffTicketQueue displays no-results state | "No matching tickets" message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
-| T-024 | UI | FR-05, AC-04 | StaffTicketQueue displays error state | Error alert message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| Test ID | Type | Req / AC Mapping | Test Description | Expected Result | Target Test File Path |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **UT-01** | `Unit` | BR-01 | Password hashing & comparison logic | bcrypt Hash & Verify correctly | `server/src/utils/hash.test.ts` |
+| **REG-01** | `Migration/Regression` | Sec 5.2 | Lab 2 Requester & Ticket data continuity | Existing tickets remain accessible after auth migration | `server/tests/lab-03/migration.api.test.ts` |
+| **SEC-01** | `Security/Authorization` | BR-04, AC-04 | Access to Internal Notes without IT_Staff role | Return 403 Forbidden / 404 | `server/tests/lab-03/authorization.api.test.ts` |
+| **UI-01** | `UI Style` | Sec 7 | Zen Green badge & color token consistency | Render correct status & priority badges | `client/src/components/Badge.test.tsx` |
+| **RESP-01**| `Responsive` | Sec 7, Sec 8 | Navigation & Table layout on Mobile/Tablet | No horizontal overflow; responsive layout | `e2e/lab-03/responsive.spec.ts` |
+| **T-001** | `Unit / API` | FR-01, AC-01, BR-01, BR-02 | Login with valid credentials | 200 OK, returns session JWT token | `server/tests/lab-03/auth.api.test.ts` |
+| **T-002** | `Migration/Regression` | FR-01, AC-10, BR-03, BR-04 | Login with invalid credentials or inactive user | 401 Unauthorized / 403 Forbidden | `server/tests/lab-03/auth.api.test.ts` |
+| **T-003** | `Security/Authorization` | FR-02, AC-02, BR-03 | API access with `mustChangePassword=true` | 403 Forbidden, prompt to change password | `server/tests/lab-03/auth.api.test.ts` |
+| **T-004** | `API` | FR-04, AC-03 | Submit ticket with explicit `requesterId` in body | API ignores body ID, uses Session ID | `server/tests/lab-03/ticket.creation.test.ts` |
+| **T-005** | `API` | FR-08, AC-06, BR-10 | Requester attempts to fetch internal notes | 403 Forbidden / Hidden from API | `server/tests/lab-03/comments-notes.api.test.ts` |
+| **T-006** | `API` | FR-07, AC-05, BR-11 | IT Staff attempts invalid status transition (New to Closed) | 409 Conflict | `server/tests/lab-03/ticket.status.test.ts` |
+| **T-007** | `API` | FR-12, AC-09, BR-13, BR-14 | Admin deactivates last active Admin | 400 Bad Request, safety guard blocks | `server/tests/lab-03/users-admin.api.test.ts` |
+| **T-008** | `UI` | FR-03 | Render Admin navigation for IT Staff user | Navigation links are not rendered | `client/src/tests/lab-03/Navigation.test.tsx` |
+| **T-009** | `E2E` | FR-02, AC-02, BR-03, BR-06 | E2E flow: First login forced password change | User cannot skip change screen, login completes after | `e2e/lab-03/authentication.spec.ts` |
+| **T-010** | `E2E` | FR-05, FR-06, AC-03, AC-04, AC-05, BR-08, BR-09 | E2E flow: IT Staff takes ownership of ticket & filters queue | Ticket owner updates, UI reflects change | `e2e/lab-03/staff-ticket-flow.spec.ts` |
+| **T-011** | `API` | FR-09, AC-07, BR-07 | Requester posts public comment on their own ticket | 201 Created with comment object and author info | `server/tests/lab-03/comments-notes.api.test.ts` |
+| **T-012** | `API` | FR-11, AC-08, BR-12, BR-15 | Admin creates new IT Staff user with initial password | 201 Created with user object and mustChangePassword set to true | `server/tests/lab-03/users-admin.api.test.ts` |
+| **T-013** | `API` | FR-03 | Unauthenticated user accesses IT Staff queue | 401 Unauthorized | `server/tests/lab-03/staff-queue.api.test.ts` |
+| **T-014** | `API` | FR-03 | Requester accesses IT Staff queue | 403 Forbidden | `server/tests/lab-03/staff-queue.api.test.ts` |
+| **T-015** | `API` | FR-05, AC-04 | IT Staff fetches queue (happy path) | 200 OK, paginated list with owner mapped | `server/tests/lab-03/staff-queue.api.test.ts` |
+| **T-016** | `API` | FR-05, AC-04 | IT Staff fetches empty queue | 200 OK, empty data array | `server/tests/lab-03/staff-queue.api.test.ts` |
+| **T-017** | `API` | FR-05, AC-04 | IT Staff fetches queue with invalid query params | 200 OK, ignores invalid params | `server/tests/lab-03/staff-queue.api.test.ts` |
+| **T-018** | `API` | FR-05, AC-04 | IT Staff fetches queue with out-of-range page | 200 OK, empty data array on specified page | `server/tests/lab-03/staff-queue.api.test.ts` |
+| **T-019** | `API` | FR-05, AC-04 | Regression test: /queue is not swallowed by /:id | 200 OK, avoids 400 Invalid ticket ID | `server/tests/lab-03/staff-queue.api.test.ts` |
+| **T-020** | `UI` | FR-05, AC-04 | StaffTicketQueue renders filters including Category and Owner | Filters are present in document | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| **T-021** | `UI` | FR-05, AC-04 | StaffTicketQueue renders table rows with ticket data | Ticket row and summary displayed | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| **T-022** | `UI` | FR-05, AC-04 | StaffTicketQueue displays empty state | "No tickets in queue" message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| **T-023** | `UI` | FR-05, AC-04 | StaffTicketQueue displays no-results state | "No matching tickets" message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
+| **T-024** | `UI` | FR-05, AC-04 | StaffTicketQueue displays error state | Error alert message rendered | `client/src/tests/lab-03/StaffTicketQueue.test.tsx` |
 
 ## 3. AC & BR Traceability Matrix
 
@@ -50,15 +55,24 @@ The testing strategy for Lab 3 focuses heavily on Authorization, RBAC boundaries
 * **AC-10** (Inactive Login Block): T-002
 
 ### Business Rules Traceability
-* **BR-01 & BR-02** (Password Hashing & Auth Credentials): T-001
-* **BR-04** (Inactive Account Login Prevention): T-002
-* **BR-03 & BR-06** (MustChangePassword Enforcement & Session-Driven Identity): T-009
-* **BR-07** (Public Comment Access): T-011
-* **BR-08 & BR-09** (IT Staff Ticket Claiming & Priority Operations): T-010
-* **BR-10** (Internal Notes Confidentiality - Staff/Admin Only): T-005
+* **BR-01 & BR-02** (Authentication Credential Validation & Password Hashing / Session Expiration): T-001, UT-01
+* **BR-03 & BR-06** (First-Login Password Policy & Session-Driven Requester Identity): T-003, T-004, T-009
+* **BR-04** (Inactive Account Lockout): T-002
+* **BR-05** (Single Unique Email Constraint): T-012
+* **BR-07** (Ticket Ownership & Active Staff/Admin Assignment): T-010
+* **BR-08** (Dual Priority Model - Requested vs IT Priority): T-010
+* **BR-09** (Public Comments Rules): T-011
+* **BR-10** (Internal Notes Confidentiality): T-005, SEC-01
 * **BR-11** (Ticket Status Lifecycle Matrix): T-006
-* **BR-12 & BR-15** (Admin User Management & Default Credential Rules): T-012
-* **BR-13 & BR-14** (Admin Safety Guards - Self-Deactivation & Last Admin Protection): T-007
+* **BR-12** (Requester Intermediate Resolution Verification): T-010
+* **BR-13** (Admin Safety Guard 1 - Self-Deactivation Prevention): T-007
+* **BR-14** (Admin Safety Guard 2 - Last Active Administrator Protection): T-007
+* **BR-15** (Single Role Assignment per User): T-008, T-012
+* **BR-16** (Admin Separation of Duties & Assignment Rules): T-008, T-010
+* **BR-17** (Soft-Removal Attachment Audit Trail): REG-01
+* **BR-18** (Validation & Failure Handling - Standard 400 Bad Request): T-017, T-018
+* **BR-19** (Backward Compatibility & Lab 2 Regression Safety): REG-01
+* **BR-20** (Data Migration Integrity & Foreign Key Preservation): REG-01
 
 ## 4. Test File Directory Structure
 
