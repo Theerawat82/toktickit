@@ -58,6 +58,9 @@ The UI introduces new Dashboard views tailored to user roles (IT Staff vs. Reque
 *   **Migration/Backfill Strategy:**
     *   A database migration will create the `ActionTaken` table and add `version` and `requesterConfirmedResolved` columns to the `Ticket` table.
     *   Existing tickets will have their `version` initialized to 1 and `requesterConfirmedResolved` initialized to false.
+*   **Rollback / Recovery Approach:**
+    *   To revert this migration specifically, use `npx prisma migrate resolve --rolled-back lab4_add_actions_taken` followed by manual `ALTER TABLE` down scripts if applying locally, or simply drop the `ActionTaken` table and remove the two columns from `Ticket`. 
+    *   Since these are purely additive changes, rolling back this schema change does not touch or corrupt any existing Lab 2/3 data (Tickets, Comments, Internal Notes, or Attachments remain safe).
 
 ## 8. API Contract
 The REST API will be expanded with endpoints for managing Actions Taken, retrieving dashboard metrics, and updating tickets with concurrency checks. For complete API details, refer to [api-spec.md](./api-spec.md).
