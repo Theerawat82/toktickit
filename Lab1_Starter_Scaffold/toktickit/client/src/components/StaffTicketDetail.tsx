@@ -209,6 +209,10 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
+      if (res.status === 409) {
+        setTicket(data.currentServerRow);
+        throw new Error("This ticket was updated elsewhere — refreshing to the latest state");
+      }
       if (!res.ok) throw new Error(data.error || `Failed to update ${endpoint}`);
       setActionSuccess(successMsg);
       await loadTicket();
@@ -223,6 +227,22 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
   if (loading) return <div className="text-center py-5">Loading ticket details...</div>;
   if (errorMsg) return <div className="alert alert-danger">{errorMsg}</div>;
   if (!ticket) return null;
+
+  const getValidStatuses = (currentStatus: string) => {
+    switch (currentStatus) {
+      case "New": return ["New", "Open", "Cancelled"];
+      case "Open": return ["Open", "In Progress", "Resolved", "Cancelled"];
+      case "In Progress": return ["In Progress", "Waiting for Requester", "Resolved"];
+      case "Waiting for Requester": return ["Waiting for Requester", "In Progress"];
+      case "Resolved": return ["Resolved", "Closed", "Reopened"];
+      case "Reopened": return ["Reopened", "Open"];
+      case "Closed": return ["Closed"];
+      case "Cancelled": return ["Cancelled"];
+      default: return [currentStatus];
+    }
+  };
+  const validStatuses = getValidStatuses(ticket.currentStatus);
+
 
   return (
     <div>
@@ -368,7 +388,7 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
                         aria-label="Ticket Owner"
                         className="form-select"
                         value={ticket.ticketOwnerId || ""}
-                        onChange={(e) => handleAction("assign", { ticketOwnerId: e.target.value ? Number(e.target.value) : null }, "Owner updated successfully.")}
+                        onChange={(e) => handleAction("owner", { ticketOwnerId: e.target.value ? Number(e.target.value) : null, version: ticket.version }, "Owner updated successfully.")}
                         disabled={actionLoading}
                       >
                         <option value="">-- Unassigned --</option>
@@ -384,7 +404,7 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
                         aria-label="IT Priority"
                         className="form-select"
                         value={ticket.itPriority || "Low"}
-                        onChange={(e) => handleAction("priority", { itPriority: e.target.value }, "Priority updated successfully.")}
+                        onChange={(e) => handleAction("priority", { itPriority: e.target.value, version: ticket.version }, "Priority updated successfully.")}
                         disabled={actionLoading}
                       >
                         <option value="Low">Low</option>
@@ -399,21 +419,14 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
                     <label className="fw-bold mb-2">Current Status</label>
                     <div className="d-flex gap-2">
                       <select
-                        aria-label="Current Status"
-                        className="form-select"
-                        value={ticket.currentStatus}
-                        onChange={(e) => handleAction("status", { status: e.target.value }, "Status updated successfully.")}
-                        disabled={actionLoading}
-                      >
-                        <option value="New">New</option>
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Waiting for Requester">Waiting for Requester</option>
-                        <option value="Resolved">Resolved</option>
-                        <option value="Closed">Closed</option>
-                        <option value="Reopened">Reopened</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
+                          aria-label="Current Status"
+                          className="form-select"
+                          value={ticket.currentStatus}
+                          onChange={(e) => handleAction("status", { status: e.target.value, version: ticket.version }, "Status updated successfully.")}
+                          disabled={actionLoading}
+                        >
+                          {validStatuses.map(st => <option key={st} value={st}>{st}</option>)}
+                        </select>
                     </div>
                   </div>
                 </div>

@@ -155,6 +155,37 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
   // ---------------------------------------------------------------------------
   // Post a public comment (AC-07 / BR-09)
   // ---------------------------------------------------------------------------
+  
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmMsg, setConfirmMsg] = useState("");
+  const [confirmError, setConfirmError] = useState("");
+
+  const handleConfirmResolved = async () => {
+    setConfirmLoading(true);
+    setConfirmError("");
+    setConfirmMsg("");
+    try {
+      const res = await apiFetch(`/api/tickets/${ticketId}/confirm-resolved`, {
+        method: "PATCH",
+        body: JSON.stringify({ version: ticket.version })
+      });
+      const data = await res.json();
+      if (res.status === 409) {
+        setTicket(data.currentServerRow);
+        setConfirmError("This ticket was updated elsewhere — refreshing to the latest state");
+      } else if (!res.ok) {
+        setConfirmError(data.error || "Failed to confirm resolution");
+      } else {
+        setTicket(data);
+        setConfirmMsg("You confirmed this resolution — IT Staff will do a final review");
+      }
+    } catch (e) {
+      setConfirmError("Network error");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     setCommentError("");
@@ -254,6 +285,27 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
       <div className="row g-4">
         {/* Main Content (left column) */}
         <div className="col-12 col-lg-8">
+
+  {ticket.currentStatus === "Resolved" && !ticket.requesterConfirmedResolved && (
+    <div className="alert alert-info mt-3 d-flex align-items-center justify-content-between">
+      <div>
+        <strong>Please confirm:</strong> Does the solution provided resolve your issue?
+      </div>
+      <button 
+        className="btn btn-sm btn-success" 
+        disabled={confirmLoading}
+        onClick={handleConfirmResolved}
+      >
+        {confirmLoading ? "Confirming..." : "Confirm this is resolved"}
+      </button>
+    </div>
+  )}
+  {confirmMsg && <div className="alert alert-success mt-3">{confirmMsg}</div>}
+  {confirmError && <div className="alert alert-danger mt-3">{confirmError}</div>}
+  {ticket.currentStatus === "Resolved" && ticket.requesterConfirmedResolved && !confirmMsg && (
+    <div className="alert alert-success mt-3">You confirmed this resolution — IT Staff will do a final review.</div>
+  )}
+
           {/* Ticket header card */}
           <div className="card mb-4" style={{ borderColor: ZEN.border }}>
             <div className="card-header bg-white d-flex justify-content-between align-items-center py-3">
