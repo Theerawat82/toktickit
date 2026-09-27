@@ -17,12 +17,15 @@ describe("Issue 3: Actions Taken API", () => {
 
   beforeAll(async () => {
     adminUser = await prisma.user.findFirst({ where: { role: "Administrator" } });
+    if (!adminUser) {
+      adminUser = await prisma.user.create({ data: { name: "Admin", email: "admin@test.com", password: "pwd", role: "Administrator" } });
+    }
     staffUser = await prisma.user.findFirst({ where: { role: "IT_Staff" } });
     reqUser = await prisma.user.findFirst({ where: { role: "Requester" } });
 
-    adminToken = jwt.sign({ userId: adminUser.id, role: adminUser.role }, process.env.JWT_SECRET || "secret");
-    staffToken = jwt.sign({ userId: staffUser.id, role: staffUser.role }, process.env.JWT_SECRET || "secret");
-    requesterToken = jwt.sign({ userId: reqUser.id, role: reqUser.role }, process.env.JWT_SECRET || "secret");
+    adminToken = jwt.sign({ id: adminUser.id, role: adminUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
+    staffToken = jwt.sign({ id: staffUser.id, role: staffUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
+    requesterToken = jwt.sign({ id: reqUser.id, role: reqUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
 
     const category = await prisma.category.findFirst();
     const system = await prisma.relatedSystem.findFirst();
@@ -148,6 +151,7 @@ describe("Issue 3: Actions Taken API", () => {
 
   describe("GET /api/tickets/:id/actions", () => {
     it("should return empty array for zero actions", async () => {
+      await prisma.ticket.deleteMany({ where: { ticketNumber: "TEST-ACT-EMPTY" } });
       const emptyTicket = await prisma.ticket.create({
         data: {
           ticketNumber: "TEST-ACT-EMPTY",
