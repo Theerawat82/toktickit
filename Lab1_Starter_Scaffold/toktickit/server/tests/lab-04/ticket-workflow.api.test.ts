@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
-import { app } from "../../src/index.js";
+import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
 import jwt from "jsonwebtoken";
 
@@ -20,12 +20,15 @@ describe("Issue 4: Ticket Workflow API", () => {
 
   beforeAll(async () => {
     adminUser = await prisma.user.findFirst({ where: { role: "Administrator" } });
+    if (!adminUser) {
+      adminUser = await prisma.user.create({ data: { name: "Admin", email: "admin2@test.com", password: "pwd", role: "Administrator" } });
+    }
     staffUser = await prisma.user.findFirst({ where: { role: "IT_Staff" } });
     reqUser = await prisma.user.findFirst({ where: { role: "Requester" } });
 
-    adminToken = jwt.sign({ userId: adminUser.id, role: adminUser.role }, process.env.JWT_SECRET || "secret");
-    staffToken = jwt.sign({ userId: staffUser.id, role: staffUser.role }, process.env.JWT_SECRET || "secret");
-    requesterToken = jwt.sign({ userId: reqUser.id, role: reqUser.role }, process.env.JWT_SECRET || "secret");
+    adminToken = jwt.sign({ id: adminUser.id, role: adminUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
+    staffToken = jwt.sign({ id: staffUser.id, role: staffUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
+    requesterToken = jwt.sign({ id: reqUser.id, role: reqUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
 
     category = await prisma.category.findFirst();
     system = await prisma.relatedSystem.findFirst();
@@ -160,9 +163,9 @@ describe("Issue 4: Ticket Workflow API", () => {
         .set("Authorization", `Bearer ${requesterToken}`)
         .send({ version: testTicket.version });
       expect(res.status).toBe(200);
-      expect(res.body.requesterConfirmedResolved).toBe(true);
-      expect(res.body.currentStatus).toBe("Resolved"); // Unchanged
-      testTicket = res.body;
+      expect(res.body.ticket.requesterConfirmedResolved).toBe(true);
+      expect(res.body.ticket.currentStatus).toBe("Resolved"); // Unchanged
+      testTicket = res.body.ticket;
     });
 
     it("should return 409 if version is stale on confirm-resolved", async () => {

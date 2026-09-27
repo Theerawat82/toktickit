@@ -946,9 +946,9 @@ router.patch("/:id/status", verifyTicketOwnership, async (req: Request, res: Res
       }
 
       let updateData: any = { currentStatus: status, updatedAt: new Date(), version: { increment: 1 } };
-      if (normalizeStatus(status) === "Resolved") {
-        updateData.requesterConfirmedResolved = false;
-      }
+      if (normalizeStatus(currentStatus) === "Resolved" && normalizeStatus(status) !== "Resolved") {
+          updateData.requesterConfirmedResolved = false;
+        }
 
       if (ticket.version !== version) return res.status(409).json({ error: "Conflict", currentServerRow: ticket });
       
@@ -1327,7 +1327,10 @@ router.patch("/:id/confirm-resolved", verifyTicketOwnership, async (req: Request
     const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
 
-    if (req.user!.role === "Requester" && ticket.requesterId !== req.user!.id) {
+    if (req.user!.role !== "Requester") {
+       return res.status(403).json({ error: "Only the requester can confirm resolution" });
+    }
+    if (ticket.requesterId !== req.user!.id) {
        return res.status(403).json({ error: "Not your ticket" });
     }
 
