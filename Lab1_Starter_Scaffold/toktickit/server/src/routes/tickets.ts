@@ -812,461 +812,164 @@ router.post("/:id/attachments", (req, res, next) => {
 
 
 
-// PATCH /api/tickets/:id/assign
-
-router.patch("/:id/assign", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
-
+// PATCH /api/tickets/:id/owner
+router.patch("/:id/owner", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
   try {
-
     const ticketId = Number(req.params.id);
-
-    const { ticketOwnerId } = req.body;
-
-
+    const { ticketOwnerId, version } = req.body;
 
     if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
-
-
+    if (version === undefined || typeof version !== "number") return res.status(400).json({ error: "version is required" });
 
     const prisma = getPrisma();
 
-
-
     // Check if ticket exists
-
     const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
-
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
-
-
 
     let finalOwnerId = null;
 
-
-
     if (ticketOwnerId) {
-
       const newOwner = await prisma.user.findUnique({ where: { id: Number(ticketOwnerId) } });
-
       if (!newOwner) return res.status(400).json({ error: `User with ID ${ticketOwnerId} not found.` });
-
       if (!newOwner.isActive) return res.status(400).json({ error: `User with ID ${ticketOwnerId} is not active.` });
-
       if (newOwner.role !== "IT_Staff" && newOwner.role !== "Administrator") {
-
          return res.status(400).json({ error: `User with ID ${ticketOwnerId} is not an active IT Staff or Administrator.` });
-
       }
-
       finalOwnerId = newOwner.id;
-
     }
 
+    if (ticket.version !== version) return res.status(409).json({ error: "Conflict", currentServerRow: ticket });
 
-
-    const updated = await prisma.ticket.update({
-
-      where: { id: ticketId },
-
-      data: { ticketOwnerId: finalOwnerId }
-
+    const updateRes = await prisma.ticket.updateMany({
+      where: { id: ticketId, version: version },
+      data: { ticketOwnerId: finalOwnerId, updatedAt: new Date(), version: { increment: 1 } }
     });
 
+    if (updateRes.count === 0) {
+      const latest = await prisma.ticket.findUnique({ where: { id: ticketId } });
+      return res.status(409).json({ error: "Conflict", currentServerRow: latest });
+    }
 
-
+    const updated = await prisma.ticket.findUnique({ where: { id: ticketId } });
     res.status(200).json({ message: "Ticket owner updated successfully.", ticket: updated });
-
   } catch (error) {
-
     console.error("Failed to assign ticket:", error);
-
     res.status(500).json({ error: "Failed to assign ticket" });
-
   }
-
 });
-
-
 
 // PATCH /api/tickets/:id/priority
-
 router.patch("/:id/priority", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
-
   try {
-
     const ticketId = Number(req.params.id);
-
-    const { itPriority } = req.body;
-
-
+    const { itPriority, version } = req.body;
 
     if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
-
-
+    if (version === undefined || typeof version !== "number") return res.status(400).json({ error: "version is required" });
 
     const validPriorities = ["Low", "Medium", "High", "Urgent"];
-
     if (!itPriority || !validPriorities.includes(itPriority)) {
-
       return res.status(400).json({ error: "Invalid priority value." });
-
     }
 
-
-
     const prisma = getPrisma();
-
     const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
-
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
 
+    if (ticket.version !== version) return res.status(409).json({ error: "Conflict", currentServerRow: ticket });
 
-
-    const updated = await prisma.ticket.update({
-
-      where: { id: ticketId },
-
-      data: { itPriority }
-
+    const updateRes = await prisma.ticket.updateMany({
+      where: { id: ticketId, version: version },
+      data: { itPriority, updatedAt: new Date(), version: { increment: 1 } }
     });
 
+    if (updateRes.count === 0) {
+      const latest = await prisma.ticket.findUnique({ where: { id: ticketId } });
+      return res.status(409).json({ error: "Conflict", currentServerRow: latest });
+    }
 
-
-    res.status(200).json({ message: "IT priority updated successfully.", ticket: updated });
-
+    const updated = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    res.status(200).json({ message: "Priority updated successfully.", ticket: updated });
   } catch (error) {
-
     console.error("Failed to update priority:", error);
-
     res.status(500).json({ error: "Failed to update priority" });
-
   }
-
 });
-
-
 
 // PATCH /api/tickets/:id/status
-
 router.patch("/:id/status", verifyTicketOwnership, async (req: Request, res: Response) => {
-
   try {
-
     const ticketId = Number(req.params.id);
-
-    const { status, problemAppearsResolved } = req.body;
-
+    const { status, version } = req.body;
     
-
     if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if (version === undefined || typeof version !== "number") return res.status(400).json({ error: "version is required" });
 
-
-
-    if (status === undefined && problemAppearsResolved === undefined) {
-
+    if (status === undefined) {
       return res.status(400).json({ error: "No update fields provided" });
-
     }
-
-
-
-    const updateData: any = {};
-
-
-
-    // BR-11: Requesters cannot change actual status
-
-    if (status !== undefined) {
-
-      if (req.user.role === "Requester") {
-
-        return res.status(403).json({ error: "Requesters cannot change the ticket status directly" });
-
-      }
-
-
-
-      const prisma = getPrisma();
-
-      const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
-
-      if (!ticket) return res.status(404).json({ error: "Ticket not found" });
-
-
-
-      const currentStatus = ticket.currentStatus;
-
-
-
-      // Status transition matrix BR-11 validation
-
-      let validNextStatuses: string[] = [];
-
-      switch (currentStatus) {
-
-        case "New":
-
-          validNextStatuses = ["Open", "Cancelled"];
-
-          break;
-
-        case "Open":
-
-          validNextStatuses = ["In_Progress", "In Progress", "Resolved", "Cancelled"];
-
-          break;
-
-        case "In_Progress":
-
-        case "In Progress":
-
-          validNextStatuses = ["Waiting_for_Requester", "Waiting for Requester", "Resolved"];
-
-          break;
-
-        case "Waiting_for_Requester":
-
-        case "Waiting for Requester":
-
-          validNextStatuses = ["In_Progress", "In Progress", "Resolved"]; // From waiting, usually goes back to in progress or resolved.
-
-          break;
-
-        case "Resolved":
-
-          validNextStatuses = ["Closed", "Reopened"];
-
-          break;
-
-        case "Reopened":
-
-          validNextStatuses = ["In_Progress", "In Progress", "Resolved"]; // Assume similar to Open
-
-          break;
-
-        default:
-
-          break;
-
-      }
-
-
-
-      // Normalize string matching (e.g. handle space vs underscore if needed)
-
-      const normalizeStatus = (s: string) => s.replace(/_/g, " ");
-
-      const isValidTransition = validNextStatuses.some(s => normalizeStatus(s) === normalizeStatus(status));
-
-
-
-      if (!isValidTransition) {
-
-         return res.status(409).json({ error: `Invalid status transition from ${currentStatus} to ${status}.` });
-
-      }
-
-
-
-      updateData.currentStatus = status;
-
-      // also update enum if we are using it
-
-      if (["New", "Open", "In_Progress", "Waiting_for_Requester", "Resolved", "Closed", "Reopened", "Cancelled"].includes(status.replace(/ /g, "_"))) {
-
-         updateData.status = status.replace(/ /g, "_");
-
-      }
-
-    }
-
-
-
-    // BR-12: Requesters can set problemAppearsResolved (as can IT Staff/Admin)
-
-    if (problemAppearsResolved !== undefined) {
-
-      if (typeof problemAppearsResolved !== "boolean") {
-
-        return res.status(400).json({ error: "problemAppearsResolved must be a boolean" });
-
-      }
-
-      updateData.problemAppearsResolved = problemAppearsResolved;
-
-    }
-
-
 
     const prisma = getPrisma();
-
-
-
-    // Check if ticket is already Resolved/Closed (for BR-12 logic)
-
-    if (problemAppearsResolved === true && req.user.role === "Requester") {
-
-      const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
-
-      if (!ticket) return res.status(404).json({ error: "Ticket not found" });
-
-      if (ticket.currentStatus === "Resolved" || ticket.currentStatus === "Closed") {
-
-         return res.status(400).json({ error: `Ticket is already ${ticket.currentStatus}` });
-
-      }
-
-    }
-
-
-
-    const updated = await prisma.ticket.update({
-
-      where: { id: ticketId },
-
-      data: updateData
-
-    });
-
-    res.status(200).json({ message: "Ticket updated successfully.", ticket: updated });
-
-  } catch (error) {
-
-    console.error("Failed to update status:", error);
-
-    res.status(500).json({ error: "Failed to update status" });
-
-  }
-
-});
-
-
-
-// POST /api/tickets/:id/internal-notes
-
-router.post("/:id/internal-notes", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
-
-  try {
-
-    const ticketId = Number(req.params.id);
-
-    const { content } = req.body;
-
-    
-
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
-
-    if (!content) return res.status(400).json({ error: "Content is required" });
-
-
-
-    const prisma = getPrisma();
-
-    const note = await prisma.internalNote.create({
-
-      data: {
-
-        content,
-
-        ticketId,
-
-        authorId: req.user.id
-
-      }
-
-    });
-
-    res.status(201).json(note);
-
-  } catch (error) {
-
-    console.error("Failed to create internal note:", error);
-
-    res.status(500).json({ error: "Failed to create internal note" });
-
-  }
-
-});
-
-
-
-// GET /api/tickets/:id/internal-notes
-
-// AC-06: Only IT Staff and Administrators may retrieve internal notes. Requesters receive 403.
-
-router.get("/:id/internal-notes", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
-
-  try {
-
-    const ticketId = Number(req.params.id);
-
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
-
-
-
-    const prisma = getPrisma();
-
     const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
-
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
 
-
-
-    const notes = await prisma.internalNote.findMany({
-
-      where: { ticketId },
-
-      orderBy: { createdAt: "asc" },
-
-      include: {
-
-        author: {
-
-          select: { id: true, name: true, role: true }
-
-        }
-
+    if (status !== undefined) {
+      if (!req.user || !["IT_Staff", "Administrator"].includes(req.user.role)) {
+        return res.status(403).json({ error: "Only IT Staff or Administrators can change the status." });
       }
 
-    });
-
-
-
-    const result = notes.map((n: any) => ({
-
-      id: n.id,
-
-      content: n.content,
-
-      createdAt: n.createdAt,
-
-      author: {
-
-        id: n.author.id,
-
-        name: n.author.name,
-
-        role: n.author.role
-
+      const currentStatus = ticket.currentStatus;
+      let validNextStatuses: string[] = [];
+      switch (currentStatus) {
+        case "New": validNextStatuses = ["Open", "Cancelled"]; break;
+        case "Open": validNextStatuses = ["In_Progress", "In Progress", "Resolved", "Cancelled"]; break;
+        case "In Progress":
+        case "In_Progress": validNextStatuses = ["Waiting_for_Requester", "Waiting for Requester", "Resolved"]; break;
+        case "Waiting for Requester":
+        case "Waiting_for_Requester": validNextStatuses = ["In_Progress", "In Progress", "Resolved"]; break;
+        case "Resolved": validNextStatuses = ["Closed", "Reopened"]; break;
+        case "Reopened": validNextStatuses = ["In_Progress", "In Progress", "Resolved"]; break;
+      }
+      
+      const normalizeStatus = (s: string) => s.replace(/_/g, " ");
+      const isValidTransition = validNextStatuses.some(s => normalizeStatus(s) === normalizeStatus(status));
+      if (!isValidTransition) {
+        return res.status(400).json({ error: `Cannot transition from '${currentStatus}' to '${status}'.` });
       }
 
-    }));
+      if (normalizeStatus(status) === "Resolved") {
+         const actionCount = await prisma.actionTaken.count({ where: { ticketId } });
+         if (actionCount === 0) {
+            return res.status(400).json({ error: "Cannot resolve a ticket without at least one Action Taken recorded" });
+         }
+      }
 
+      let updateData: any = { currentStatus: status, updatedAt: new Date(), version: { increment: 1 } };
+      if (normalizeStatus(status) === "Resolved") {
+        updateData.requesterConfirmedResolved = false;
+      }
 
+      if (ticket.version !== version) return res.status(409).json({ error: "Conflict", currentServerRow: ticket });
+      
+      const updateRes = await prisma.ticket.updateMany({
+        where: { id: ticketId, version: version },
+        data: updateData
+      });
 
-    res.status(200).json(result);
+      if (updateRes.count === 0) {
+        const latest = await prisma.ticket.findUnique({ where: { id: ticketId } });
+        return res.status(409).json({ error: "Conflict", currentServerRow: latest });
+      }
+    }
 
+    const updated = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    res.status(200).json({ message: "Ticket status updated successfully.", ticket: updated });
   } catch (error) {
-
-    console.error("Failed to fetch internal notes:", error);
-
-    res.status(500).json({ error: "Failed to fetch internal notes" });
-
+    console.error("Failed to update status:", error);
+    res.status(500).json({ error: "Failed to update status" });
   }
-
 });
-
-
 
 // POST /api/tickets/:id/comments
 
@@ -1607,6 +1310,114 @@ router.get("/:id/actions", verifyTicketOwnership, async (req: Request, res: Resp
   } catch (error) {
     console.error("Failed to fetch actions:", error);
     res.status(500).json({ error: "Failed to fetch actions" });
+  }
+});
+
+
+// PATCH /api/tickets/:id/confirm-resolved
+router.patch("/:id/confirm-resolved", verifyTicketOwnership, async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const { version } = req.body;
+    
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if (version === undefined || typeof version !== "number") return res.status(400).json({ error: "version is required for updates" });
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    if (req.user!.role === "Requester" && ticket.requesterId !== req.user!.id) {
+       return res.status(403).json({ error: "Not your ticket" });
+    }
+
+    if (ticket.currentStatus !== "Resolved") {
+       return res.status(400).json({ error: "Ticket is not in a Resolved state" });
+    }
+
+    if (ticket.version !== version) {
+       return res.status(409).json({ error: "Conflict", currentServerRow: ticket });
+    }
+
+    const updateRes = await prisma.ticket.updateMany({
+       where: { id: ticketId, version: version },
+       data: { requesterConfirmedResolved: true, updatedAt: new Date(), version: { increment: 1 } }
+    });
+
+    if (updateRes.count === 0) {
+       const latest = await prisma.ticket.findUnique({ where: { id: ticketId } });
+       return res.status(409).json({ error: "Conflict", currentServerRow: latest });
+    }
+
+    const updated = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    res.status(200).json({ message: "Ticket resolution confirmed.", ticket: updated });
+  } catch (error) {
+    console.error("Failed to confirm resolution:", error);
+    res.status(500).json({ error: "Failed to confirm resolution" });
+  }
+});
+
+
+// POST /api/tickets/:id/internal-notes
+router.post("/:id/internal-notes", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const { content } = req.body;
+    
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if (!content) return res.status(400).json({ error: "Content is required" });
+
+    const prisma = getPrisma();
+    const note = await prisma.internalNote.create({
+      data: {
+        content,
+        ticketId,
+        authorId: req.user.id
+      }
+    });
+    res.status(201).json(note);
+  } catch (error) {
+    console.error("Failed to create internal note:", error);
+    res.status(500).json({ error: "Failed to create internal note" });
+  }
+});
+
+// GET /api/tickets/:id/internal-notes
+// AC-06: Only IT Staff and Administrators may retrieve internal notes. Requesters receive 403.
+router.get("/:id/internal-notes", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
+  try {
+    const ticketId = Number(req.params.id);
+    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+
+    const prisma = getPrisma();
+    const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+
+    const notes = await prisma.internalNote.findMany({
+      where: { ticketId },
+      orderBy: { createdAt: "asc" },
+      include: {
+        author: {
+          select: { id: true, name: true, role: true }
+        }
+      }
+    });
+
+    const result = notes.map((n: any) => ({
+      id: n.id,
+      content: n.content,
+      createdAt: n.createdAt,
+      author: {
+        id: n.author.id,
+        name: n.author.name,
+        role: n.author.role
+      }
+    }));
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Failed to fetch internal notes:", error);
+    res.status(500).json({ error: "Failed to fetch internal notes" });
   }
 });
 

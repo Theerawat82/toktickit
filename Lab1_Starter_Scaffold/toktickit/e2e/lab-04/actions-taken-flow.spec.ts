@@ -10,8 +10,8 @@ test.describe('Issue 3: Actions Taken Flow', () => {
     
     // Login as IT Staff
     await staffPage.goto('/login');
-    await staffPage.fill('input[name="email"]', 'staff1@toktickit.com');
-    await staffPage.fill('input[name="password"]', 'Password123!');
+    await staffPage.fill('input[type="email"]', 'staff1@toktickit.com');
+    await staffPage.fill('input[type="password"]', 'Password123!');
     await staffPage.click('button[type="submit"]');
     
     // Go to a ticket
@@ -37,8 +37,8 @@ test.describe('Issue 3: Actions Taken Flow', () => {
     const reqPage = await reqContext.newPage();
     
     await reqPage.goto('/login');
-    await reqPage.fill('input[name="email"]', 'user1@toktickit.com');
-    await reqPage.fill('input[name="password"]', 'Password123!');
+    await reqPage.fill('input[type="email"]', 'user1@toktickit.com');
+    await reqPage.fill('input[type="password"]', 'Password123!');
     await reqPage.click('button[type="submit"]');
     
     await reqPage.click('text=TKT-'); 

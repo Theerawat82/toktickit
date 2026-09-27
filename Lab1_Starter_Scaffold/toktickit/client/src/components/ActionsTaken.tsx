@@ -238,32 +238,32 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
           )}
 
           <div style={{ marginBottom: '10px' }}>
-            <label>Action Description *</label><br/>
-            <textarea value={actionDescription} onChange={e => setActionDescription(e.target.value)} style={{ width: '100%' }} />
+            <label htmlFor="actionDescription">Action Description *</label><br/>
+            <textarea id="actionDescription" value={actionDescription} onChange={e => setActionDescription(e.target.value)} style={{ width: '100%' }} />
           </div>
 
           <div style={{ marginBottom: '10px' }}>
-            <label>Result *</label><br/>
-            <textarea value={result} onChange={e => setResult(e.target.value)} style={{ width: '100%' }} />
+            <label htmlFor="result">Result *</label><br/>
+            <textarea id="result" value={result} onChange={e => setResult(e.target.value)} style={{ width: '100%' }} />
           </div>
 
           <div style={{ marginBottom: '10px' }}>
-            <label>
-              <input type="checkbox" checked={followUpRequired} onChange={e => setFollowUpRequired(e.target.checked)} />
+            <label htmlFor="followUpRequired">
+              <input id="followUpRequired" type="checkbox" checked={followUpRequired} onChange={e => setFollowUpRequired(e.target.checked)} />
               Follow-Up Required
             </label>
           </div>
 
           {followUpRequired && (
             <div style={{ marginBottom: '10px' }}>
-              <label>Follow-up Note *</label><br/>
-              <textarea value={followUpNote} onChange={e => setFollowUpNote(e.target.value)} style={{ width: '100%' }} />
+              <label htmlFor="followUpNote">Follow-up Note *</label><br/>
+              <textarea id="followUpNote" value={followUpNote} onChange={e => setFollowUpNote(e.target.value)} style={{ width: '100%' }} />
             </div>
           )}
 
           <div style={{ marginBottom: '10px' }}>
-            <label>Attachment Notes</label><br/>
-            <textarea value={attachmentNotes} onChange={e => setAttachmentNotes(e.target.value)} style={{ width: '100%' }} />
+            <label htmlFor="attachmentNotes">Attachment Notes</label><br/>
+            <textarea id="attachmentNotes" value={attachmentNotes} onChange={e => setAttachmentNotes(e.target.value)} style={{ width: '100%' }} />
           </div>
 
           <button type="submit" disabled={formLoading} style={{ marginRight: '10px' }}>Save</button>
