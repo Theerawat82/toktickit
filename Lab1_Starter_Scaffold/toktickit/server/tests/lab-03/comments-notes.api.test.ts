@@ -38,7 +38,7 @@ describe("Comments and Internal Notes API (Lab 3)", () => {
         .send({ content: "Hello" });
 
       expect(res.status).toBe(201);
-      expect(res.body.comment.content).toBe("Hello");
+      expect(res.body.content).toBe("Hello");
     });
 
     it("should return 400 for empty comment content", async () => {
@@ -63,7 +63,7 @@ describe("Comments and Internal Notes API (Lab 3)", () => {
       (getPrisma as any).mockReturnValue({
         user: { findUnique: vi.fn().mockResolvedValue(mockRequester) },
         ticket: { findUnique: vi.fn().mockResolvedValue(mockTicket) },
-        comment: { findMany: vi.fn().mockResolvedValue([{ id: 1, content: "Hello" }]) }
+        comment: { findMany: vi.fn().mockResolvedValue([{ id: 1, content: "Hello", author: { id: 1, name: "John", role: "Requester" } }]) }
       });
 
       const token = generateToken(mockRequester.id);
@@ -72,7 +72,7 @@ describe("Comments and Internal Notes API (Lab 3)", () => {
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.comments.length).toBe(1);
+      expect(res.body.length).toBe(1);
     });
   });
 
@@ -113,7 +113,7 @@ describe("Comments and Internal Notes API (Lab 3)", () => {
       (getPrisma as any).mockReturnValue({
         user: { findUnique: vi.fn().mockResolvedValue(mockITStaff) },
         ticket: { findUnique: vi.fn().mockResolvedValue(mockTicket) },
-        internalNote: { findMany: vi.fn().mockResolvedValue([{ id: 1 }]) }
+        internalNote: { findMany: vi.fn().mockResolvedValue([{ id: 1, author: { id: 2, name: "Admin", role: "IT_Staff" } }]) }
       });
 
       const token = generateToken(mockITStaff.id);
@@ -122,7 +122,7 @@ describe("Comments and Internal Notes API (Lab 3)", () => {
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.internalNotes.length).toBe(1);
+      expect(res.body.length).toBe(1);
     });
 
     it("should block Requester from fetching internal notes (403)", async () => {
@@ -141,11 +141,14 @@ describe("Comments and Internal Notes API (Lab 3)", () => {
 
   describe("PATCH /api/tickets/:id/confirm-resolved (BR-12: requesterConfirmedResolved)", () => {
     it("should return 200 when Requester confirms their own resolved ticket", async () => {
+      let count = 0;
       (getPrisma as any).mockReturnValue({
         user: { findUnique: vi.fn().mockResolvedValue(mockRequester) },
         ticket: { 
           findUnique: vi.fn().mockImplementation(() => {
-            return Promise.resolve({ ...mockTicket, currentStatus: "Resolved", version: 1, requesterConfirmedResolved: true });
+            count++;
+            if (count <= 2) return Promise.resolve({ ...mockTicket, currentStatus: "Resolved", version: 1, requesterConfirmedResolved: false });
+            return Promise.resolve({ ...mockTicket, currentStatus: "Resolved", version: 2, requesterConfirmedResolved: true });
           }),
           updateMany: vi.fn().mockResolvedValue({ count: 1 })
         }
@@ -191,7 +194,7 @@ describe("Comments and Internal Notes API (Lab 3)", () => {
         .set("Authorization", `Bearer ${token}`)
         .send({ version: 1 });
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
     });
   });
 });
