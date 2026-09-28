@@ -1,5 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+afterEach(cleanup);
 import '@testing-library/jest-dom';
 import ActionsTaken from '../../components/ActionsTaken.js';
 import * as api from '../../api.js';
@@ -71,7 +73,7 @@ describe('ActionsTaken Component', () => {
     
     expect(screen.getByText('Edit Action Taken')).toBeInTheDocument();
     expect((screen.getByLabelText(/Action Description/i) as HTMLTextAreaElement).value).toBe('Test action');
-    expect(screen.getByText(/Staff User/)).toBeInTheDocument(); // Read-only field
+    expect(screen.getAllByText(/Staff User/)[0]).toBeInTheDocument(); // Read-only field
     
     // Simulate changing text
     fireEvent.change(screen.getByLabelText(/Action Description/i), { target: { value: 'Edited action' } });

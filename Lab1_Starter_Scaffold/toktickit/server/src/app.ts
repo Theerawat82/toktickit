@@ -10,6 +10,7 @@ import attachmentsRouter from "./routes/attachments.js";
 import usersRouter from "./routes/users.js";
 
 import adminUsersRouter from "./routes/adminUsers.js";
+import dashboardRouter from "./routes/dashboard.js";
 
 import { requireAuth, requireRole } from "./middleware/auth.js";
 
@@ -24,6 +25,7 @@ app.use(express.json());
 // Issue 2 — Health check
 // ---------------------------------------------------------------------------
 app.use("/api", healthRouter);
+app.use("/api/dashboard", requireAuth, dashboardRouter);
 
 // ---------------------------------------------------------------------------
 // Issue 3 — Authentication

@@ -7,30 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  Requester
-  IT_Staff
-  Administrator
-}
-
-enum ITPriority {
-  Low
-  Medium
-  High
-  Urgent
-}
-
-enum TicketStatus {
-  New
-  Open
-  In_Progress
-  Waiting_for_Requester
-  Resolved
-  Closed
-  Reopened
-  Cancelled
-}
-
 model Category {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -57,46 +33,39 @@ model User {
   mustChangePassword Boolean        @default(true)
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
-  requestedTickets   Ticket[]       @relation("TicketRequester")
-  assignedTickets    Ticket[]       @relation("TicketOwner")
+  actionsTaken       ActionTaken[]
   comments           Comment[]
   internalNotes      InternalNote[]
-  actionsTaken       ActionTaken[]
+  requestedTickets   Ticket[]       @relation("TicketRequester")
+  assignedTickets    Ticket[]       @relation("TicketOwner")
 }
 
 model Ticket {
-  id                Int      @id @default(autoincrement())
-  ticketNumber      String   @unique
-  summary           String
-  description       String?
-  requestedPriority String
-  currentStatus     String   @default("New")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  requesterId Int
-  requester   User @relation("TicketRequester", fields: [requesterId], references: [id])
-
-  ticketOwnerId Int?
-  ticketOwner   User? @relation("TicketOwner", fields: [ticketOwnerId], references: [id])
-
-  categoryId Int
-  category   Category @relation(fields: [categoryId], references: [id])
-
-  relatedSystemId Int
-  relatedSystem   RelatedSystem @relation(fields: [relatedSystemId], references: [id])
-
-  itPriority ITPriority   @default(Low)
-  status     TicketStatus @default(New)
-  problemAppearsResolved Boolean @default(false)
-
-  attachments   Attachment[]
-  comments      Comment[]
-  internalNotes InternalNote[]
-  actionsTaken  ActionTaken[]
-
-  version                     Int      @default(1)
-  requesterConfirmedResolved  Boolean  @default(false)
+  id                         Int            @id @default(autoincrement())
+  ticketNumber               String         @unique
+  summary                    String
+  description                String?
+  requestedPriority          String
+  currentStatus              String         @default("New")
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+  requesterId                Int
+  ticketOwnerId              Int?
+  categoryId                 Int
+  relatedSystemId            Int
+  itPriority                 ITPriority     @default(Low)
+  status                     TicketStatus   @default(New)
+  problemAppearsResolved     Boolean        @default(false)
+  version                    Int            @default(1)
+  requesterConfirmedResolved Boolean        @default(false)
+  actionsTaken               ActionTaken[]
+  attachments                Attachment[]
+  comments                   Comment[]
+  internalNotes              InternalNote[]
+  category                   Category       @relation(fields: [categoryId], references: [id])
+  relatedSystem              RelatedSystem  @relation(fields: [relatedSystemId], references: [id])
+  requester                  User           @relation("TicketRequester", fields: [requesterId], references: [id])
+  ticketOwner                User?          @relation("TicketOwner", fields: [ticketOwnerId], references: [id])
 
   @@index([requesterId])
   @@index([ticketOwnerId])
@@ -115,9 +84,8 @@ model Attachment {
   removalReason String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-
-  ticketId Int
-  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId      Int
+  ticket        Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
 }
@@ -125,11 +93,11 @@ model Attachment {
 model Comment {
   id        Int      @id @default(autoincrement())
   ticketId  Int
-  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
   content   String
   createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([authorId])
@@ -138,32 +106,56 @@ model Comment {
 model InternalNote {
   id        Int      @id @default(autoincrement())
   ticketId  Int
-  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
   content   String
   createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([authorId])
 }
 
 model ActionTaken {
-  id                Int       @id @default(autoincrement())
+  id                Int      @id @default(autoincrement())
   ticketId          Int
-  ticket            Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  actionDateTime    DateTime  @default(now())
+  actionDateTime    DateTime @default(now())
   actionDescription String
   result            String
   performedById     Int
-  performedBy       User      @relation(fields: [performedById], references: [id], onDelete: Restrict)
-  followUpRequired  Boolean   @default(false)
+  followUpRequired  Boolean  @default(false)
   followUpNote      String?
   attachmentNotes   String?
-  version           Int       @default(1)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  version           Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  performedBy       User     @relation(fields: [performedById], references: [id])
+  ticket            Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([performedById])
+}
+
+enum Role {
+  Requester
+  IT_Staff
+  Administrator
+}
+
+enum ITPriority {
+  Low
+  Medium
+  High
+  Urgent
+}
+
+enum TicketStatus {
+  New
+  Open
+  In_Progress
+  Waiting_for_Requester
+  Resolved
+  Closed
+  Reopened
+  Cancelled
 }

@@ -7,8 +7,7 @@ import { useAuth } from '../../context/AuthContext.js';
 import * as api from '../../api.js';
 
 vi.mock('../../api.js', () => ({
-  apiFetch: vi.fn(),
-  getUserInfo: vi.fn()
+  apiFetch: vi.fn()
 }));
 
 vi.mock('../../context/AuthContext.js', () => ({
@@ -81,7 +80,7 @@ describe('TicketWorkflow Component', () => {
 
     it('Status control renders only valid transitions', async () => {
       setupApiMock();
-      (api.getUserInfo as any).mockResolvedValue([]);
+      // (api.getUserInfo as any).mockResolvedValue([]);
       
       render(<StaffTicketDetail ticketId={100} />);
       

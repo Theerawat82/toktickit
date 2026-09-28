@@ -3,5 +3,8 @@
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.20.2",
     "jsdom": "^29.1.1"
+  },
+  "dependencies": {
+    "puppeteer": "^25.12.0"
   }
 }

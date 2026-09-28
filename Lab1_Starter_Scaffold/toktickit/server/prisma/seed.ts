@@ -29,6 +29,7 @@ async function main() {
   // 3. Users
   const passwordHash = await bcrypt.hash("Password123!", 10);
   const usersToSeed = [
+    { email: "admin@toktickit.com", name: "Administrator", role: "Administrator" },
     { email: "staff1@toktickit.com", name: "IT Staff 1", role: "IT_Staff" },
     { email: "staff2@toktickit.com", name: "IT Staff 2", role: "IT_Staff" },
     { email: "staff3@toktickit.com", name: "IT Staff 3", role: "IT_Staff" }, // No assigned tickets for testing zeroes
