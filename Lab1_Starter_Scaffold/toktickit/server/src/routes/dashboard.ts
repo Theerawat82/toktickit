@@ -23,7 +23,7 @@ router.get("/staff", requireRole(["IT_Staff", "Administrator"]), async (req: Req
     const myAssignedCount = await prisma.ticket.count({
       where: {
         ticketOwnerId: req.user!.id,
-        currentStatus: { notIn: ["Closed", "Cancelled"] },
+        currentStatus: { notIn: ["Resolved", "Closed", "Cancelled"] },
       },
     });
 
@@ -121,10 +121,10 @@ router.get("/requester", requireRole(["Requester"]), async (req: Request, res: R
     };
 
     for (const g of groupedByStatus) {
-      if (g.currentStatus === "Open") myTickets["Open"] = g._count;
-      else if (g.currentStatus === "In_Progress") myTickets["InProgress"] = g._count;
-      else if (g.currentStatus === "Resolved") myTickets["Resolved"] = g._count;
-      else if (g.currentStatus === "Closed") myTickets["Closed"] = g._count;
+      if (g.currentStatus === "Open" || g.currentStatus === "New") myTickets["Open"] += g._count;
+      else if (g.currentStatus === "In_Progress" || g.currentStatus === "Waiting_for_Requester") myTickets["InProgress"] += g._count;
+      else if (g.currentStatus === "Resolved") myTickets["Resolved"] += g._count;
+      else if (g.currentStatus === "Closed") myTickets["Closed"] += g._count;
     }
 
     res.status(200).json({ myTickets });

@@ -94,7 +94,7 @@ export default function StaffDashboard() {
           <div className="card h-100">
             <div className="card-body d-flex justify-content-between align-items-center">
               <h5 className="card-title text-muted mb-0">Unassigned</h5>
-              <h2 className="display-6 mb-0"><a href="#queue?ownerId=unassigned&status=open" className="text-decoration-none">{data.unassignedCount}</a></h2>
+              <h2 className="display-6 mb-0"><a href="#queue?ownerId=unassigned" className="text-decoration-none">{data.unassignedCount}</a></h2>
             </div>
           </div>
         </div>

@@ -11,9 +11,9 @@ test.describe("Issue 5: Dashboards", () => {
 
     await expect(page.locator("h2").filter({ hasText: "Dashboard" })).toBeVisible();
 
-    const unassignedCountLink = page.locator("a[href='#queue?ownerId=unassigned&status=open']");
+    const unassignedCountLink = page.locator("a[href='#queue?ownerId=unassigned']");
     await unassignedCountLink.click();
-    await page.waitForURL("/#queue?ownerId=unassigned&status=open");
+    await page.waitForURL("/#queue?ownerId=unassigned");
     
     // We expect the Ticket Queue to render
     await expect(page.locator("strong").filter({ hasText: "Ticket Queue" })).toBeVisible();
@@ -48,9 +48,9 @@ test.describe("Issue 5: Dashboards", () => {
 
     await expect(page.locator("h2").filter({ hasText: "My Dashboard" })).toBeVisible();
 
-    const openLink = page.locator("a[href='#mytickets?currentStatus=Open']");
+    const openLink = page.locator("a[href='#mytickets?currentStatus=Open,New']");
     await openLink.click();
-    await page.waitForURL("/#mytickets?currentStatus=Open");
+    await page.waitForURL("/#mytickets?currentStatus=Open,New");
     
     await expect(page.locator("strong").filter({ hasText: "My Tickets" })).toBeVisible();
   });
@@ -64,7 +64,7 @@ test.describe("Issue 5: Dashboards", () => {
     await page.waitForURL("/#dashboard");
 
     await expect(page.locator("h2").filter({ hasText: "My Dashboard" })).toBeVisible();
-    await expect(page.locator("a[href='#mytickets?currentStatus=Open']")).toContainText("0");
+    await expect(page.locator("a[href='#mytickets?currentStatus=Open,New']")).toContainText("0");
   });
 
   test("Administrator sees staff dashboard with user-account counts", async ({ page }) => {

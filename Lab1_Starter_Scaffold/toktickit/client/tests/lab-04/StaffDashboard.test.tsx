@@ -10,20 +10,8 @@ vi.mock("../../src/api.js");
 const mockStaffDashboardData = {
   unassignedCount: 5,
   myAssignedCount: 12,
-  byStatus: [
-    { status: "New", count: 2 },
-    { status: "Open", count: 4 },
-    { status: "In_Progress", count: 3 },
-    { status: "Waiting_for_Requester", count: 1 },
-    { status: "Resolved", count: 10 },
-    { status: "Closed", count: 6 },
-    { status: "Cancelled", count: 0 },
-  ],
-  byItPriority: [
-    { priority: "Urgent", count: 22 },
-    { priority: "Low", count: 8 },
-    { priority: "Unprioritized", count: 9 },
-  ],
+  statusBreakdown: { "New": 2, "Open": 4, "InProgress": 3, "Waiting for Requester": 1, "Resolved": 10, "Closed": 6, "Cancelled": 0 },
+  priorityBreakdown: { "Urgent": 22, "Low": 8, "Unprioritized": 9 },
   recentlyUpdated: [
     {
       id: 101,
@@ -80,7 +68,7 @@ describe("Issue 5: StaffDashboard Component", () => {
     await waitFor(() => expect(screen.getAllByText("Dashboard")[0]).toBeInTheDocument());
 
     const unassignedLink = screen.getByRole("link", { name: "5" });
-    expect(unassignedLink).toHaveAttribute("href", "#queue?ownerId=unassigned&status=open");
+    expect(unassignedLink).toHaveAttribute("href", "#queue?ownerId=unassigned");
 
     const newLink = screen.getByRole("link", { name: "2" });
     expect(newLink).toHaveAttribute("href", "#queue?status=New");
