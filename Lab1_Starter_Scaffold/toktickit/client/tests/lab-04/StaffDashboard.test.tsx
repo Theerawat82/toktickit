@@ -38,7 +38,7 @@ const mockStaffDashboardData = {
   inactiveUserCount: 2,
 };
 
-import { cleanup } from "@testing-library/react";
+
 
 afterEach(() => {
   cleanup();

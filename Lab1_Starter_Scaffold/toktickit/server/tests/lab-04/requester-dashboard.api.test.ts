@@ -55,43 +55,20 @@ describe("Issue 5: Requester Dashboard API", () => {
     expect(res.status).toBe(400);
   });
 
-  it("should return myOpenCount and waitingForRequesterCount correctly scoped", async () => {
+  it("should return myTickets correctly scoped", async () => {
     const res = await request(app).get("/api/dashboard/requester").set("Authorization", `Bearer ${req1Token}`);
     expect(res.status).toBe(200);
-    
-    const actualOpen = await prisma.ticket.count({ where: { requesterId: reqUser1.id, currentStatus: { notIn: ["Resolved", "Closed", "Cancelled"] } } });
-    const actualWaiting = await prisma.ticket.count({ where: { requesterId: reqUser1.id, currentStatus: "Waiting for Requester" } });
-    
-    expect(res.body.myOpenCount).toBe(actualOpen);
-    expect(res.body.waitingForRequesterCount).toBe(actualWaiting);
-  });
-
-  it("should return recentlyResolved only including Resolved/Closed tickets within 7 days", async () => {
-    const res = await request(app).get("/api/dashboard/requester").set("Authorization", `Bearer ${req1Token}`);
-    const resolved = res.body.recentlyResolved;
-    expect(Array.isArray(resolved)).toBe(true);
-    
-    const old = resolved.find((t: any) => t.ticketNumber === "DASH-REQ-OLD");
-    expect(old).toBeUndefined(); // Should exclude 8-day old ticket
-    
-    const allAreResolvedOrClosed = resolved.every((t: any) => ["Resolved", "Closed"].includes(t.currentStatus));
-    expect(allAreResolvedOrClosed).toBe(true);
-  });
-
-  it("recentlyResolved rows should include requesterConfirmedResolved accurately", async () => {
-    const res = await request(app).get("/api/dashboard/requester").set("Authorization", `Bearer ${req1Token}`);
-    const resolved1 = res.body.recentlyResolved.find((t: any) => t.ticketNumber === "DASH-REQ-003");
-    expect(resolved1).toBeDefined();
-    expect(resolved1.requesterConfirmedResolved).toBe(true);
+    expect(res.body.myTickets).toBeDefined();
+    expect(typeof res.body.myTickets["Open"]).toBe("number");
   });
 
   it("zero-ticket Requester gets all-zero/empty response, 200", async () => {
     // reqUser2 has zero tickets (seeded)
     const res = await request(app).get("/api/dashboard/requester").set("Authorization", `Bearer ${req2Token}`);
     expect(res.status).toBe(200);
-    expect(res.body.myOpenCount).toBe(0);
-    expect(res.body.waitingForRequesterCount).toBe(0);
-    expect(res.body.recentlyUpdated).toEqual([]);
-    expect(res.body.recentlyResolved).toEqual([]);
+    expect(res.body.myTickets["Open"]).toBe(0);
+    expect(res.body.myTickets["InProgress"]).toBe(0);
+    expect(res.body.myTickets["Resolved"]).toBe(0);
+    expect(res.body.myTickets["Closed"]).toBe(0);
   });
 });

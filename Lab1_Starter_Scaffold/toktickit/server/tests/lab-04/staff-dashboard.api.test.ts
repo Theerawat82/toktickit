@@ -75,23 +75,18 @@ describe("Issue 5: Staff Dashboard API", () => {
     expect(res.body.myAssignedCount).toBe(actualCount);
   });
 
-  it("should return byStatus including Closed/Cancelled", async () => {
+  it("should return statusBreakdown including Closed/Cancelled", async () => {
     const res = await request(app).get("/api/dashboard/staff").set("Authorization", `Bearer ${staffToken}`);
-    const closedStatus = res.body.byStatus.find((s: any) => s.status === "Closed");
-    expect(closedStatus).toBeDefined();
-    expect(closedStatus.count).toBeGreaterThanOrEqual(1);
+    expect(res.body.statusBreakdown["Closed"]).toBeGreaterThanOrEqual(1);
   });
 
-  it("should return byItPriority excluding Closed/Cancelled and correctly buckets NULL", async () => {
+  it("should return priorityBreakdown excluding Closed/Cancelled and correctly buckets NULL", async () => {
     const res = await request(app).get("/api/dashboard/staff").set("Authorization", `Bearer ${staffToken}`);
-    expect(res.body.byItPriority).toBeDefined();
-    expect(Array.isArray(res.body.byItPriority)).toBe(true);
-    const unprioritized = res.body.byItPriority.find((s: any) => s.priority === "Unprioritized");
-    if (unprioritized) {
-       expect(typeof unprioritized.count).toBe("number");
+    expect(res.body.priorityBreakdown).toBeDefined();
+    const unprioritized = res.body.priorityBreakdown["Unprioritized"];
+    if (unprioritized !== undefined) {
+       expect(typeof unprioritized).toBe("number");
     }
-    // ensure Closed tickets aren't in this bucket
-    // Since we created DASH-ST-002 as Closed and Low priority, Low priority count should not include it.
   });
 
   it("should return recentlyUpdated respecting the 7-day window and ordered DESC", async () => {
@@ -122,7 +117,11 @@ describe("Issue 5: Staff Dashboard API", () => {
   });
   
   it("all-zero state: confirms 0/[] is returned, not an error", async () => {
-    await prisma.user.deleteMany({ where: { email: "zero@staff.com" } });
+    const existing = await prisma.user.findFirst({ where: { email: "zero@staff.com" } });
+    if (existing) {
+      await prisma.actionTaken.deleteMany({ where: { performedById: existing.id } });
+      await prisma.user.deleteMany({ where: { email: "zero@staff.com" } });
+    }
     const newStaff = await prisma.user.create({ data: { name: "Zero Staff", email: "zero@staff.com", password: "p", role: "IT_Staff", mustChangePassword: false } });
     const zeroToken = jwt.sign({ id: newStaff.id, role: newStaff.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
     const res = await request(app).get("/api/dashboard/staff").set("Authorization", `Bearer ${zeroToken}`);

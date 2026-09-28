@@ -38,7 +38,7 @@ test.describe("Issue 5: Dashboards", () => {
     await expect(page.locator("strong").filter({ hasText: "Ticket Information" })).toBeVisible();
   });
 
-  test("Requester (with tickets) sees own dashboard, clicks My Open Tickets", async ({ page }) => {
+  test("Requester (with tickets) sees own dashboard, clicks Open Tickets", async ({ page }) => {
     await page.goto("/");
     await page.fill("#email", "req1@toktickit.com");
     await page.fill("#password", "Password123!");
@@ -48,9 +48,9 @@ test.describe("Issue 5: Dashboards", () => {
 
     await expect(page.locator("h2").filter({ hasText: "My Dashboard" })).toBeVisible();
 
-    const myOpenLink = page.locator("a[href='#mytickets?status=open']");
-    await myOpenLink.click();
-    await page.waitForURL("/#mytickets?status=open");
+    const openLink = page.locator("a[href='#mytickets?currentStatus=Open']");
+    await openLink.click();
+    await page.waitForURL("/#mytickets?currentStatus=Open");
     
     await expect(page.locator("strong").filter({ hasText: "My Tickets" })).toBeVisible();
   });
@@ -64,8 +64,7 @@ test.describe("Issue 5: Dashboards", () => {
     await page.waitForURL("/#dashboard");
 
     await expect(page.locator("h2").filter({ hasText: "My Dashboard" })).toBeVisible();
-    await expect(page.getByText("No recently updated tickets.")).toBeVisible();
-    await expect(page.getByText("No recently resolved tickets.")).toBeVisible();
+    await expect(page.locator("a[href='#mytickets?currentStatus=Open']")).toContainText("0");
   });
 
   test("Administrator sees staff dashboard with user-account counts", async ({ page }) => {

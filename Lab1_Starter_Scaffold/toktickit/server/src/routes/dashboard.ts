@@ -27,17 +27,18 @@ router.get("/staff", requireRole(["IT_Staff", "Administrator"]), async (req: Req
       },
     });
 
-    // 3. byStatus
+    // 3. statusBreakdown
     const groupedByStatus = await prisma.ticket.groupBy({
       by: ["currentStatus"],
       _count: true,
     });
-    const byStatus = groupedByStatus.map((g: any) => ({
-      status: g.currentStatus,
-      count: g._count,
-    }));
+    const statusBreakdown: Record<string, number> = {};
+    for (const g of groupedByStatus) {
+      const key = g.currentStatus === "In_Progress" ? "InProgress" : g.currentStatus;
+      statusBreakdown[key] = g._count;
+    }
 
-    // 4. byItPriority
+    // 4. priorityBreakdown
     const groupedByPriority = await prisma.ticket.groupBy({
       by: ["itPriority"],
       where: {
@@ -46,15 +47,10 @@ router.get("/staff", requireRole(["IT_Staff", "Administrator"]), async (req: Req
       _count: true,
     });
 
-    // We also need to count tickets where itPriority IS NULL
-    // In our schema, itPriority is an enum with a default, but if there are somehow nulls:
-    // Wait, prisma schema says itPriority is NOT NULL (default Low). But requirements say:
-    // "including a separate bucket for itPriority IS NULL, labeled distinctly e.g. 'Unprioritized'"
-    // We will just fetch nulls if they exist in the DB, though Prisma typing might say it's not possible.
-    const byItPriority = groupedByPriority.map((g: any) => ({
-      priority: g.itPriority || "Unprioritized",
-      count: g._count,
-    }));
+    const priorityBreakdown: Record<string, number> = {};
+    for (const g of groupedByPriority) {
+      priorityBreakdown[g.itPriority || "Unprioritized"] = g._count;
+    }
 
     // 5. recentlyUpdated
     const recentlyUpdatedRows = await prisma.ticket.findMany({
@@ -76,8 +72,8 @@ router.get("/staff", requireRole(["IT_Staff", "Administrator"]), async (req: Req
     const response: any = {
       unassignedCount,
       myAssignedCount,
-      byStatus,
-      byItPriority,
+      statusBreakdown,
+      priorityBreakdown,
       recentlyUpdated: recentlyUpdatedRows,
     };
 
@@ -110,66 +106,28 @@ router.get("/requester", requireRole(["Requester"]), async (req: Request, res: R
 
     const requesterId = req.user!.id;
 
-    // 1. myOpenCount
-    const myOpenCount = await prisma.ticket.count({
-      where: {
-        requesterId,
-        currentStatus: { notIn: ["Resolved", "Closed", "Cancelled"] },
-      },
+    // Get counts grouped by status
+    const groupedByStatus = await prisma.ticket.groupBy({
+      by: ["currentStatus"],
+      where: { requesterId },
+      _count: true,
     });
 
-    // 2. waitingForRequesterCount
-    const waitingForRequesterCount = await prisma.ticket.count({
-      where: {
-        requesterId,
-        currentStatus: "Waiting for Requester",
-      },
-    });
+    const myTickets: Record<string, number> = {
+      "Open": 0,
+      "InProgress": 0,
+      "Resolved": 0,
+      "Closed": 0
+    };
 
-    // 3. recentlyUpdated
-    const recentlyUpdatedRows = await prisma.ticket.findMany({
-      where: {
-        requesterId,
-        updatedAt: { gte: sevenDaysAgo },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        ticketNumber: true,
-        summary: true,
-        currentStatus: true,
-        updatedAt: true,
-        ticketOwnerId: true,
-      },
-    });
+    for (const g of groupedByStatus) {
+      if (g.currentStatus === "Open") myTickets["Open"] = g._count;
+      else if (g.currentStatus === "In_Progress") myTickets["InProgress"] = g._count;
+      else if (g.currentStatus === "Resolved") myTickets["Resolved"] = g._count;
+      else if (g.currentStatus === "Closed") myTickets["Closed"] = g._count;
+    }
 
-    // 4. recentlyResolved
-    const recentlyResolvedRows = await prisma.ticket.findMany({
-      where: {
-        requesterId,
-        currentStatus: { in: ["Resolved", "Closed"] },
-        updatedAt: { gte: sevenDaysAgo },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        ticketNumber: true,
-        summary: true,
-        currentStatus: true,
-        updatedAt: true,
-        ticketOwnerId: true,
-        requesterConfirmedResolved: true,
-      },
-    });
-
-    res.status(200).json({
-      myOpenCount,
-      waitingForRequesterCount,
-      recentlyUpdated: recentlyUpdatedRows,
-      recentlyResolved: recentlyResolvedRows,
-    });
+    res.status(200).json({ myTickets });
   } catch (error) {
     console.error("Requester dashboard error:", error);
     res.status(500).json({ error: "Failed to fetch dashboard" });

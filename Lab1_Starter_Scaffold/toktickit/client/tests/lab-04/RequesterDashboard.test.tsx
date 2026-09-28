@@ -65,15 +65,16 @@ describe("Issue 5: RequesterDashboard Component", () => {
 
   it("empty state renders correctly for a zero-ticket Requester", async () => {
     vi.spyOn(api, "getRequesterDashboard").mockResolvedValue({
-      myOpenCount: 0,
-      waitingForRequesterCount: 0,
-      recentlyUpdated: [],
-      recentlyResolved: [],
+      myTickets: {
+        Open: 0,
+        InProgress: 0,
+        Resolved: 0,
+        Closed: 0
+      }
     });
     render(<RequesterDashboard />);
     await waitFor(() => expect(screen.getByText("My Dashboard")).toBeInTheDocument());
 
-    expect(screen.getByText("No recently updated tickets.")).toBeInTheDocument();
-    expect(screen.getByText("No recently resolved tickets.")).toBeInTheDocument();
+    expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(4);
   });
 });

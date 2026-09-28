@@ -4,8 +4,8 @@ import { getStaffDashboard } from "../api.js";
 type StaffDashboardData = {
   unassignedCount: number;
   myAssignedCount: number;
-  byStatus: { status: string; count: number }[];
-  byItPriority: { priority: string; count: number }[];
+  statusBreakdown: Record<string, number>;
+  priorityBreakdown: Record<string, number>;
   recentlyUpdated: any[];
   activeUserCount?: number;
   inactiveUserCount?: number;
@@ -45,12 +45,10 @@ export default function StaffDashboard() {
 
   if (!data) return null;
 
-  const normalizeStatus = (s: string) => s.replace(/_/g, " ");
-
-  const openStatusCount = data.byStatus.find((s) => normalizeStatus(s.status) === "Open")?.count || 0;
-  const inProgressStatusCount = data.byStatus.find((s) => normalizeStatus(s.status) === "In Progress")?.count || 0;
-  const waitingStatusCount = data.byStatus.find((s) => normalizeStatus(s.status) === "Waiting for Requester")?.count || 0;
-  const newStatusCount = data.byStatus.find((s) => normalizeStatus(s.status) === "New")?.count || 0;
+    const openStatusCount = data.statusBreakdown["Open"] || 0;
+  const inProgressStatusCount = data.statusBreakdown["InProgress"] || 0;
+  const waitingStatusCount = data.statusBreakdown["Waiting for Requester"] || 0;
+  const newStatusCount = data.statusBreakdown["New"] || 0;
 
   return (
     <div>
@@ -110,14 +108,14 @@ export default function StaffDashboard() {
         </div>
       </div>
       
-      {data.byItPriority && data.byItPriority.length > 0 && (
+      {data.priorityBreakdown && Object.keys(data.priorityBreakdown).length > 0 && (
          <div className="mb-4">
            <h5>Priority Breakdown (Active)</h5>
            <div className="d-flex gap-3 flex-wrap">
-             {data.byItPriority.map((p) => (
-                <div key={p.priority} className="card px-3 py-2 text-center">
-                  <div className="small text-muted">{p.priority}</div>
-                  <div className="fw-bold"><a href={`#queue?itPriority=${p.priority}`} className="text-decoration-none">{p.count}</a></div>
+             {Object.entries(data.priorityBreakdown).map(([priority, count]) => (
+                <div key={priority} className="card px-3 py-2 text-center">
+                  <div className="small text-muted">{priority}</div>
+                  <div className="fw-bold"><a href={`#queue?itPriority=${priority}`} className="text-decoration-none">{count}</a></div>
                 </div>
              ))}
            </div>
@@ -145,7 +143,7 @@ export default function StaffDashboard() {
                 <small className="text-muted">{new Date(ticket.updatedAt).toLocaleDateString()}</small>
               </div>
               <p className="mb-1">{ticket.summary}</p>
-              <small className="badge bg-secondary">{normalizeStatus(ticket.currentStatus)}</small>
+              <small className="badge bg-secondary">{ticket.currentStatus.replace(/_/g, " ")}</small>
             </li>
           ))}
         </ul>
