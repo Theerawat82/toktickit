@@ -164,7 +164,8 @@ Checks the status of the API and database connectivity.
 | `/api/dashboard/staff` | GET | 401 | 403 | 403 | 200 | 200 | 403 | 403 | N/A | N/A |
 | `/api/tickets/:id/actions` | GET | 401 | 200 | 404 | 200 | 200 | 403 | 403 | 404 | 400 |
 | `/api/tickets/:id/actions` | POST | 401 | 403 | 403 | 201 | 201 | 403 | 403 | 404 | 400 |
-| `/api/tickets/:id/status` | PATCH | 401 | 403 | 404 | 200 | 200 | 403 | 403 | 404 | 400 |
+| `/api/tickets/:id/actions/:actionId` | PATCH | 401 | 403 | 403 | 200 | 200 | 403 | 403 | 404 | 400 |
+  | `/api/tickets/:id/status` | PATCH | 401 | 403 | 404 | 200 | 200 | 403 | 403 | 404 | 400 |
 | `/api/tickets/:id/confirm-resolved` | PATCH | 401 | 200 | 404 | 403 | 403 | 403 | 403 | 404 | 400 |
 | `/api/tickets/:id/owner` | PATCH | 401 | 403 | 403 | 200 | 200 | 403 | 403 | 404 | 400 |
 | `/api/tickets/:id/priority` | PATCH | 401 | 403 | 403 | 200 | 200 | 403 | 403 | 404 | 400 |

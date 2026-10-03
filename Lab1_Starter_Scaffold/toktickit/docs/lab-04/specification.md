@@ -46,16 +46,16 @@ Stakeholders have identified that merely having a ticket status is insufficient.
 *   **BR-07 (Concurrency Rule):** Every update to a Ticket must verify the `version` field. Mismatches result in a 409 Conflict.
 *   **BR-08 (Resolution Block Rule):** A ticket cannot be transitioned to the RESOLVED status unless it has at least one associated ActionTaken record.
 *   **BR-09 (Dashboard Calculation Rules):**
-    *   'Requester Open' counts tickets owned by the user in NEW or OPEN states.
-    *   'Requester In Progress' counts tickets owned by the user in IN PROGRESS or WAITING FOR REQUESTER states.
-    *   'IT Staff Unassigned' counts tickets without a `ticketOwnerId`.
-    *   'IT Staff My Assigned' counts tickets assigned to the logged-in user that are not RESOLVED or CLOSED.
+    *   'Requester Open' counts tickets owned by the user in NEW, OPEN, or REOPENED states.
+    *   'Requester In Progress' counts tickets owned by the user in the IN PROGRESS state. Note: WAITING FOR REQUESTER is decoupled into its own separate card for better visibility (see Section 11).
+    *   'IT Staff Unassigned' counts tickets without a `ticketOwnerId`, explicitly excluding CLOSED and CANCELLED tickets (since closed/cancelled tickets no longer need assignment).
+    *   'IT Staff My Assigned' counts tickets assigned to the logged-in user, explicitly excluding CLOSED and CANCELLED tickets (since Resolved tickets still require IT Staff oversight to reach Final Closure).
 
 ### 5.1 Ticket Status-Transition Matrix
 | From Status | To Status | Allowed Roles | Side Effects / Rules |
 | :--- | :--- | :--- | :--- |
-| New | Open | IT_Staff, Admin | |
-| Open | In_Progress, Cancelled | IT_Staff, Admin | |
+| New | Open, Cancelled | IT_Staff, Admin | |
+| Open | In_Progress, Resolved, Cancelled | IT_Staff, Admin | |
 | In_Progress | Waiting_for_Requester, Resolved | IT_Staff, Admin | Must have at least 1 Action Taken to reach Resolved (BR-08) |
 | Waiting_for_Requester | In_Progress, Resolved | IT_Staff, Admin | Must have at least 1 Action Taken to reach Resolved (BR-08) |
 | Resolved | Closed, Reopened | IT_Staff, Admin | Requesters can only confirm resolution (BR-06); IT Staff/Admin can actually close it. |
