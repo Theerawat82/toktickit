@@ -2,40 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext.js";
 import { apiFetch } from "../api.js";
 import AttachmentSection from "./AttachmentSection.js";
+import ActionsTaken from "./ActionsTaken.js";
 
-const ZEN = {
-  primary: "#006B3C",
-  secondary: "#0B7A46",
-  paleBg: "#EAF6EF",
-  pageBg: "#F5F7F6",
-  error: "#D92D20",
-  warning: "#F79009",
-  success: "#039855",
-  neutral: "#344054",
-  border: "#D0D5DD",
-  white: "#FFFFFF",
-};
+import { ZEN, priorityBadgeStyle, statusBadgeStyle } from '../theme.js';
 
-const priorityBadge: Record<string, { bg: string; color: string }> = {
-  Low: { bg: ZEN.paleBg, color: ZEN.primary },
-  Medium: { bg: "#FFF7E6", color: "#B54708" },
-  High: { bg: "#FEF3F2", color: "#B42318" },
-  Urgent: { bg: "#FEE4E2", color: "#912018" },
-  Critical: { bg: "#FEE4E2", color: "#912018" },
-};
 
-const statusBadge: Record<string, { bg: string; color: string }> = {
-  New: { bg: ZEN.paleBg, color: ZEN.primary },
-  Open: { bg: "#E0F2FE", color: "#026AA2" },
-  "In Progress": { bg: "#FFF7E6", color: "#B54708" },
-  In_Progress: { bg: "#FFF7E6", color: "#B54708" },
-  "Waiting for Requester": { bg: "#F2F4F7", color: "#344054" },
-  Waiting_for_Requester: { bg: "#F2F4F7", color: "#344054" },
-  Resolved: { bg: "#D1FADF", color: "#027A48" },
-  Closed: { bg: "#F2F4F7", color: "#667085" },
-  Reopened: { bg: "#E0F2FE", color: "#026AA2" },
-  Cancelled: { bg: "#FEE4E2", color: "#912018" },
-};
+
+
 
 const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
   Requester: { bg: ZEN.paleBg, color: ZEN.primary },
@@ -262,7 +235,7 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
                 <div style={{ color: ZEN.neutral, fontSize: 18, fontWeight: 600 }}>{ticket.summary}</div>
               </div>
               <div>
-                <Badge text={ticket.currentStatus} map={statusBadge} />
+                <Badge text={ticket.currentStatus} map={statusBadgeStyle} />
               </div>
             </div>
             <div className="card-body" style={{ backgroundColor: "#F9FAFB" }}>
@@ -433,6 +406,10 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
               </div>
             )}
           </div>
+
+          <div style={{ overflowX: "auto", minWidth: 0 }}>
+            <ActionsTaken ticketId={ticket.id} userRole="IT_Staff" />
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -461,11 +438,11 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
                 </li>
                 <li className="mb-3">
                   <div className="text-muted small fw-semibold text-uppercase">Requested Priority</div>
-                  <div className="mt-1"><Badge text={ticket.requestedPriority} map={priorityBadge} /></div>
+                  <div className="mt-1"><Badge text={ticket.requestedPriority} map={priorityBadgeStyle} /></div>
                 </li>
                 <li className="mb-3">
                   <div className="text-muted small fw-semibold text-uppercase">IT Priority</div>
-                  <div className="mt-1"><Badge text={ticket.itPriority} map={priorityBadge} /></div>
+                  <div className="mt-1"><Badge text={ticket.itPriority} map={priorityBadgeStyle} /></div>
                 </li>
                 <li className="mb-3">
                   <div className="text-muted small fw-semibold text-uppercase">Created At</div>
@@ -483,3 +460,6 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
     </div>
   );
 }
+
+
+

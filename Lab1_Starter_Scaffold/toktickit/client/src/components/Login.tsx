@@ -1,3 +1,4 @@
+import { ZEN } from '../theme.js';
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext.js";
 import { apiFetch } from "../api.js";
@@ -35,7 +36,7 @@ export default function Login() {
 
   return (
     <div className="card shadow-sm mb-4" style={{ maxWidth: 400, margin: "0 auto" }}>
-      <div className="card-header bg-primary text-white">
+      <div className="card-header text-white" style={{ backgroundColor: ZEN.primary }}>
         <h5 className="mb-0">Log In to TokTickIT</h5>
       </div>
       <div className="card-body">
@@ -68,7 +69,7 @@ export default function Login() {
           
           <button 
             type="submit" 
-            className="btn btn-primary w-100" 
+            className="btn btn text-white w-100" style={{ backgroundColor: ZEN.primary }} 
             disabled={loading}
           >
             {loading ? "Logging in..." : "Log In"}
@@ -78,3 +79,5 @@ export default function Login() {
     </div>
   );
 }
+
+

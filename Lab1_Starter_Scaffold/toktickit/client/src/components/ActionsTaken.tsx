@@ -54,7 +54,7 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
       const res = await apiFetch(`/api/tickets/${ticketId}/actions`);
       if (res.ok) {
         const data = await res.json();
-        setActions(data);
+        setActions(Array.isArray(data) ? data : (data.actions || []));
       } else {
         setError("Failed to fetch actions");
       }
@@ -239,12 +239,12 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
 
           <div style={{ marginBottom: '10px' }}>
             <label htmlFor="actionDescription">Action Description *</label><br/>
-            <textarea id="actionDescription" value={actionDescription} onChange={e => setActionDescription(e.target.value)} style={{ width: '100%' }} />
+            <textarea id="actionDescription" name="actionDescription" value={actionDescription} onChange={e => setActionDescription(e.target.value)} style={{ width: '100%' }} />
           </div>
 
           <div style={{ marginBottom: '10px' }}>
             <label htmlFor="result">Result *</label><br/>
-            <textarea id="result" value={result} onChange={e => setResult(e.target.value)} style={{ width: '100%' }} />
+            <textarea id="result" name="result" value={result} onChange={e => setResult(e.target.value)} style={{ width: '100%' }} />
           </div>
 
           <div style={{ marginBottom: '10px' }}>
@@ -273,3 +273,6 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
     </div>
   );
 }
+
+
+

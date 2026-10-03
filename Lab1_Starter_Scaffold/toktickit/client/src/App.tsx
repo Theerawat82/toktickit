@@ -1,3 +1,4 @@
+import { ZEN } from './theme.js';
 import React, { useState, useCallback, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
 import { useAuth } from "./context/AuthContext.js";
@@ -151,7 +152,7 @@ export default function App() {
 
           {state === "success" && (
             <div className="card border-success">
-              <div className="card-header bg-success text-white d-flex align-items-center gap-2">
+              <div className="card-header text-white d-flex align-items-center gap-2" style={{ backgroundColor: ZEN.primary }}>
                 <span role="img" aria-label="check">✅</span>
                 <strong>System Status: Online</strong>
               </div>
@@ -173,3 +174,5 @@ export default function App() {
     </ProtectedRoute>
   );
 }
+
+

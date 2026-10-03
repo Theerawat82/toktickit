@@ -80,6 +80,7 @@ npm run dev
 cd server
 npm test
 ```
+*(Note: Executed serially via ileParallelism: false in vitest.config.ts to prevent DB dropping issues)*
 
 2. **Client Component Tests**
 ```bash

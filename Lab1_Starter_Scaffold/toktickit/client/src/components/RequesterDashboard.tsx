@@ -1,3 +1,4 @@
+import { ZEN } from '../theme.js';
 import React, { useEffect, useState } from "react";
 import { getRequesterDashboard } from "../api.js";
 
@@ -48,7 +49,7 @@ export default function RequesterDashboard() {
           <div className="card text-center h-100">
             <div className="card-body">
               <h5 className="card-title text-muted">Open</h5>
-              <h2 className="display-6"><a href="#mytickets?currentStatus=Open,New" className="text-decoration-none">{data.myTickets["Open"] || 0}</a></h2>
+              <h2 className="display-6"><a href="#mytickets?currentStatus=Open,New" className="text-decoration-none" style={{ color: ZEN.primary }}>{data.myTickets["Open"] || 0}</a></h2>
             </div>
           </div>
         </div>
@@ -56,7 +57,7 @@ export default function RequesterDashboard() {
           <div className="card text-center h-100">
             <div className="card-body">
               <h5 className="card-title text-muted">In Progress</h5>
-              <h2 className="display-6"><a href="#mytickets?currentStatus=In_Progress,Waiting_for_Requester" className="text-decoration-none">{data.myTickets["InProgress"] || 0}</a></h2>
+              <h2 className="display-6"><a href="#mytickets?currentStatus=In_Progress,Waiting_for_Requester" className="text-decoration-none" style={{ color: ZEN.primary }}>{data.myTickets["InProgress"] || 0}</a></h2>
             </div>
           </div>
         </div>
@@ -64,7 +65,7 @@ export default function RequesterDashboard() {
           <div className="card text-center h-100">
             <div className="card-body">
               <h5 className="card-title text-muted">Resolved</h5>
-              <h2 className="display-6"><a href="#mytickets?currentStatus=Resolved" className="text-decoration-none">{data.myTickets["Resolved"] || 0}</a></h2>
+              <h2 className="display-6"><a href="#mytickets?currentStatus=Resolved" className="text-decoration-none" style={{ color: ZEN.primary }}>{data.myTickets["Resolved"] || 0}</a></h2>
             </div>
           </div>
         </div>
@@ -72,7 +73,7 @@ export default function RequesterDashboard() {
           <div className="card text-center h-100">
             <div className="card-body">
               <h5 className="card-title text-muted">Closed</h5>
-              <h2 className="display-6"><a href="#mytickets?currentStatus=Closed" className="text-decoration-none">{data.myTickets["Closed"] || 0}</a></h2>
+              <h2 className="display-6"><a href="#mytickets?currentStatus=Closed" className="text-decoration-none" style={{ color: ZEN.primary }}>{data.myTickets["Closed"] || 0}</a></h2>
             </div>
           </div>
         </div>
@@ -80,3 +81,4 @@ export default function RequesterDashboard() {
     </div>
   );
 }
+

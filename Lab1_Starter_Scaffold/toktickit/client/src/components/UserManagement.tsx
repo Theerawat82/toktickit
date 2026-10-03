@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { apiFetch } from "../api";
-const ZEN = {
-  primary: "#006B3C",
-  secondary: "#0B7A46",
-  tint: "#EAF6EF",
-  border: "#C2E0D1",
-  paleBg: "#F4F9F6",
-  pageBg: "#FAFCFB",
-  white: "#FFFFFF",
-  neutral: "#4B5563",
-};
+import { ZEN } from '../theme.js';
 
 type Role = "Requester" | "IT_Staff" | "Administrator";
 
@@ -202,7 +193,7 @@ const UserManagement: React.FC = () => {
         </button>
       </div>
 
-      <div className="card shadow-sm border-0 mb-4" style={{ backgroundColor: ZEN.tint }}>
+      <div className="card shadow-sm border-0 mb-4" style={{ backgroundColor: ZEN.paleBg }}>
         <div className="card-body d-flex gap-3">
           <input
             type="text"
@@ -226,7 +217,7 @@ const UserManagement: React.FC = () => {
         <div className="card shadow-sm border-0">
           <div className="table-responsive">
             <table className="table table-hover mb-0">
-              <thead style={{ backgroundColor: ZEN.tint }}>
+              <thead style={{ backgroundColor: ZEN.paleBg }}>
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
@@ -390,3 +381,4 @@ const UserManagement: React.FC = () => {
 };
 
 export default UserManagement;
+

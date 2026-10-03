@@ -44,35 +44,12 @@ interface TicketFilterParams {
   page?: number;
   limit?: number;
 }
-export const ZEN = {
-  primary: "#006B3C",
-  secondary: "#0B7A46",
-  paleBg: "#EAF6EF",
-  pageBg: "#F5F7F6",
-  error: "#D92D20",
-  warning: "#F79009",
-  success: "#039855",
-  neutral: "#344054",
-  border: "#D0D5DD",
-  white: "#FFFFFF",
-};
+import { ZEN, priorityBadgeStyle, statusBadgeStyle } from '../theme.js';
 
 // ── Badge colour mappings ──
-const priorityBadge: Record<string, { bg: string; color: string }> = {
-  Low:      { bg: ZEN.paleBg,  color: ZEN.primary },
-  Medium:   { bg: "#FFF7E6",   color: "#B54708" },
-  High:     { bg: "#FEF3F2",   color: "#B42318" },
-  Critical: { bg: "#FEE4E2",   color: "#912018" },
-};
 
-const statusBadge: Record<string, { bg: string; color: string }> = {
-  New:         { bg: ZEN.paleBg,  color: ZEN.primary },
-  Open:        { bg: "#E0F2FE",   color: "#026AA2" },
-  In_Progress: { bg: "#FFF7E6",   color: "#B54708" },
-  Pending:     { bg: "#F2F4F7",   color: "#344054" },
-  Resolved:    { bg: "#D1FADF",   color: "#027A48" },
-  Closed:      { bg: "#F2F4F7",   color: "#667085" },
-};
+
+
 
 function Badge({ text, map }: { text: string; map: Record<string, { bg: string; color: string }> }) {
   const key = text.replace(/\s+/g, "_");
@@ -368,7 +345,7 @@ export default function MyTickets() {
             {/* Desktop */}
             <div className="d-none d-md-block" data-testid="desktop-table">
               <div className="table-responsive">
-                <table className="table table-hover align-middle mb-0" style={{ fontSize: 14 }}>
+                <div className="table-responsive"><table className="table table-hover align-middle mb-0" style={{ fontSize: 14 }}>
                   <thead style={{ backgroundColor: ZEN.paleBg }}>
                     <tr>
                       <th style={{ color: ZEN.primary }}>Ticket No.</th>
@@ -398,14 +375,14 @@ export default function MyTickets() {
                           {t.summary}
                         </td>
                         <td style={{ color: ZEN.neutral }}>{t.category?.name ?? "—"}</td>
-                        <td><Badge text={t.requestedPriority} map={priorityBadge} /></td>
-                        <td><Badge text={t.currentStatus} map={statusBadge} /></td>
+                        <td><Badge text={t.requestedPriority} map={priorityBadgeStyle} /></td>
+                        <td><Badge text={t.currentStatus} map={statusBadgeStyle} /></td>
                         <td style={{ color: ZEN.neutral }}>{t.requesterUser?.name ?? "—"}</td>
                         <td style={{ color: ZEN.neutral, whiteSpace: "nowrap" }}>{formatDate(t.updatedAt)}</td>
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               </div>
             </div>
 
@@ -423,13 +400,13 @@ export default function MyTickets() {
                       <a href={`#ticket/${t.id}`} style={{ color: ZEN.secondary, fontWeight: 700, fontSize: 14 }}>
                         {t.ticketNumber}
                       </a>
-                      <Badge text={t.currentStatus} map={statusBadge} />
+                      <Badge text={t.currentStatus} map={statusBadgeStyle} />
                     </div>
                     <div style={{ fontSize: 14, color: ZEN.neutral, fontWeight: 500 }} className="mb-1">
                       {t.summary}
                     </div>
                     <div className="d-flex flex-wrap gap-2 align-items-center" style={{ fontSize: 12, color: "#667085" }}>
-                      <Badge text={t.requestedPriority} map={priorityBadge} />
+                      <Badge text={t.requestedPriority} map={priorityBadgeStyle} />
                       <span>{t.category?.name}</span>
                       <span>·</span>
                       <span>{formatDate(t.createdAt)}</span>
@@ -495,3 +472,6 @@ export default function MyTickets() {
     </div>
   );
 }
+
+
+

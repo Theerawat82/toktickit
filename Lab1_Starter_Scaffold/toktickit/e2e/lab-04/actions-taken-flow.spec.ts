@@ -29,14 +29,14 @@ test.describe('Issue 3: Actions Taken Flow', () => {
     await staffPage.fill('textarea[name="result"]', 'E2E Result');
     await staffPage.click('button:has-text("Save")');
     
-    await expect(staffPage.locator('text=E2E Description')).toBeVisible();
+    await expect(staffPage.locator('td:has-text("E2E Description")').first()).toBeVisible();
     
     // Edit Action
     await staffPage.click('button:has-text("Edit")');
     await staffPage.fill('textarea[name="actionDescription"]', 'E2E Edited');
     await staffPage.click('button:has-text("Save")');
     
-    await expect(staffPage.locator('text=E2E Edited')).toBeVisible();
+    await expect(staffPage.locator('td:has-text("E2E Edited")').first()).toBeVisible();
     
     // Verify Requester view
     const reqContext = await browser.newContext();
@@ -54,8 +54,9 @@ test.describe('Issue 3: Actions Taken Flow', () => {
     await reqPage.goto('/' + ticketLinkReq);
    
     
-    await expect(reqPage.locator('text=E2E Edited')).toBeVisible();
+    await expect(reqPage.locator('td:has-text("E2E Edited")').first()).toBeVisible();
     await expect(reqPage.locator('button:has-text("Edit")')).not.toBeVisible();
     await expect(reqPage.locator('text=Add Action Taken')).not.toBeVisible();
   });
 });
+

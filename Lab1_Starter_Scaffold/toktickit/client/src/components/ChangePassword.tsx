@@ -1,3 +1,4 @@
+import { ZEN } from '../theme.js';
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext.js";
 import { apiFetch } from "../api.js";
@@ -50,7 +51,7 @@ export default function ChangePassword() {
 
   return (
     <div className="card shadow-sm mb-4" style={{ maxWidth: 500, margin: "0 auto" }}>
-      <div className="card-header bg-warning text-dark">
+      <div className="card-header text-white" style={{ backgroundColor: ZEN.primary }}>
         <h5 className="mb-0">Change Your Password</h5>
       </div>
       <div className="card-body">
@@ -110,7 +111,7 @@ export default function ChangePassword() {
             
             <button 
               type="submit" 
-              className="btn btn-warning w-100" 
+              className="btn text-white w-100" style={{ backgroundColor: ZEN.primary }} 
               disabled={loading}
             >
               {loading ? "Updating..." : "Update Password"}
@@ -121,3 +122,6 @@ export default function ChangePassword() {
     </div>
   );
 }
+
+
+

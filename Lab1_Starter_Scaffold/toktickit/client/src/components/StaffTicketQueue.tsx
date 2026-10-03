@@ -1,7 +1,9 @@
+import { ZEN, priorityBadgeStyle, statusBadgeStyle } from '../theme.js';
+import { Badge } from './Badge.js';
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext.js";
 import { apiFetch } from "../api.js";
-import { ZEN } from "./MyTickets.js";
+
 
 // ── Types ──
 interface Category {
@@ -53,45 +55,6 @@ interface StaffTicketFilterParams {
   pageSize?: number;
 }
 
-const PRIORITY_BADGE: Record<string, { bg: string; color: string }> = {
-  Low:      { bg: "#EAF6EF",  color: "#006B3C" },
-  Medium:   { bg: "#FFF7E6",   color: "#B54708" },
-  High:     { bg: "#FEF3F2",   color: "#B42318" },
-  Urgent:   { bg: "#FEE2E2",   color: "#912018" },
-};
-
-// Bug 5 fixed: STATUS_BADGE now matches the exact 8 TicketStatus enum values from schema.prisma
-const STATUS_BADGE: Record<string, { bg: string; color: string }> = {
-  New:                    { bg: "#EAF6EF",  color: "#006B3C" },
-  Open:                   { bg: "#E0F2FE",   color: "#026AA2" },
-  In_Progress:            { bg: "#FFF7E6",   color: "#B54708" },
-  Waiting_for_Requester:  { bg: "#FEF6EE",   color: "#B93815" },
-  Resolved:               { bg: "#D1FADF",   color: "#027A48" },
-  Closed:                 { bg: "#F2F4F7",   color: "#667085" },
-  Reopened:               { bg: "#EFF8FF",   color: "#175CD3" },
-  Cancelled:              { bg: "#FEF3F2",   color: "#B42318" },
-};
-
-function Badge({ text, map }: { text: string; map: Record<string, { bg: string; color: string }> }) {
-  const key = text.replace(/\s+/g, "_");
-  const style = map[key] ?? map[text] ?? { bg: "#F2F4F7", color: "#344054" };
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 10px",
-        borderRadius: 12,
-        fontSize: 12,
-        fontWeight: 600,
-        backgroundColor: style.bg,
-        color: style.color,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {text}
-    </span>
-  );
-}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -423,8 +386,8 @@ export default function StaffTicketQueue() {
                           {t.summary}
                         </td>
                         <td style={{ color: ZEN.neutral }}>{t.category?.name ?? "—"}</td>
-                        <td><Badge text={t.itPriority} map={PRIORITY_BADGE} /></td>
-                        <td><Badge text={t.currentStatus} map={STATUS_BADGE} /></td>
+                        <td><Badge text={t.itPriority} map={priorityBadgeStyle} /></td>
+                        <td><Badge text={t.currentStatus} map={statusBadgeStyle} /></td>
                         <td style={{ color: ZEN.neutral }}>{t.requester?.name ?? "—"}</td>
                         <td style={{ color: ZEN.neutral }}>{t.owner?.name ?? "—"}</td>
                         <td style={{ color: ZEN.neutral, whiteSpace: "nowrap" }}>{formatDate(t.updatedAt)}</td>
@@ -449,13 +412,13 @@ export default function StaffTicketQueue() {
                       <a href={`#ticket/${t.id}`} style={{ color: ZEN.secondary, fontWeight: 700, fontSize: 14 }}>
                         {t.ticketNumber}
                       </a>
-                      <Badge text={t.currentStatus} map={STATUS_BADGE} />
+                      <Badge text={t.currentStatus} map={statusBadgeStyle} />
                     </div>
                     <div style={{ fontSize: 14, color: ZEN.neutral, fontWeight: 500 }} className="mb-1">
                       {t.summary}
                     </div>
                     <div className="d-flex flex-wrap gap-2 align-items-center" style={{ fontSize: 12, color: "#667085" }}>
-                      <Badge text={t.itPriority} map={PRIORITY_BADGE} />
+                      <Badge text={t.itPriority} map={priorityBadgeStyle} />
                       <span>{t.category?.name}</span>
                       <span>·</span>
                       <span>{formatDate(t.createdAt)}</span>
@@ -521,3 +484,8 @@ export default function StaffTicketQueue() {
     </div>
   );
 }
+
+
+
+
+

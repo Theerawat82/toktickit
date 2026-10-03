@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext.js";
 import { apiFetch } from "../api.js";
 import AttachmentSection from "./AttachmentSection.js";
+import ActionsTaken from "./ActionsTaken.js";
 
 // ---------------------------------------------------------------------------
 // Design tokens — Zen Green palette (ui-spec.md §1)
@@ -47,7 +48,7 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 const ACTIVE_STATUSES = new Set(["New", "Open", "In Progress", "In_Progress", "Waiting for Requester", "Waiting_for_Requester", "Reopened"]);
 
 function Badge({ text, map }: { text: string; map: Record<string, { bg: string; color: string }> }) {
-  const key = text.replace(/\s+/g, "_");
+  const key = (text || "").replace(/\s+/g, "_");
   const style = map[key] ?? map[text] ?? { bg: "#F2F4F7", color: "#344054" };
   return (
     <span
@@ -138,13 +139,13 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
       const res = await apiFetch(`/api/tickets/${ticketId}/comments`);
       if (!res.ok) return; // Silently ignore — don't break the ticket view
       const data = await res.json();
-      console.log("loadComments DATA:", data);
+      
       if (Array.isArray(data)) {
-        console.log("loadComments SETTING DATA:", data);
+        
         setComments(data);
       }
     } catch (e) {
-      console.log("loadComments ERROR:", e);
+      
     }
   }, [ticketId, ticket]);
 
@@ -271,6 +272,7 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
   }
 
   if (!ticket) return null;
+
 
   const canResolve = ACTIVE_STATUSES.has(ticket.currentStatus) && !ticket.problemAppearsResolved;
 
@@ -525,6 +527,10 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
               </form>
             </div>
           </div>
+
+          <div style={{ overflowX: "auto", minWidth: 0 }}>
+            <ActionsTaken ticketId={ticket.id} userRole="Requester" />
+          </div>
         </div>
 
         {/* Sidebar (right column) */}
@@ -573,3 +579,7 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
     </div>
   );
 }
+
+
+
+

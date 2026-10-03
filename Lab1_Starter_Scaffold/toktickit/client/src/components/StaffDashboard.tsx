@@ -1,3 +1,4 @@
+import { ZEN } from '../theme.js';
 import React, { useEffect, useState } from "react";
 import { getStaffDashboard } from "../api.js";
 
@@ -59,7 +60,7 @@ export default function StaffDashboard() {
           <div className="card text-center h-100">
             <div className="card-body">
               <h5 className="card-title text-muted">New</h5>
-              <h2 className="display-6"><a href="#queue?status=New" className="text-decoration-none">{newStatusCount}</a></h2>
+              <h2 className="display-6"><a href="#queue?status=New" className="text-decoration-none" style={{ color: ZEN.primary }}>{newStatusCount}</a></h2>
             </div>
           </div>
         </div>
@@ -67,7 +68,7 @@ export default function StaffDashboard() {
           <div className="card text-center h-100">
             <div className="card-body">
               <h5 className="card-title text-muted">Open</h5>
-              <h2 className="display-6"><a href="#queue?status=Open" className="text-decoration-none">{openStatusCount}</a></h2>
+              <h2 className="display-6"><a href="#queue?status=Open" className="text-decoration-none" style={{ color: ZEN.primary }}>{openStatusCount}</a></h2>
             </div>
           </div>
         </div>
@@ -75,7 +76,7 @@ export default function StaffDashboard() {
           <div className="card text-center h-100">
             <div className="card-body">
               <h5 className="card-title text-muted">In Progress</h5>
-              <h2 className="display-6"><a href="#queue?status=In_Progress" className="text-decoration-none">{inProgressStatusCount}</a></h2>
+              <h2 className="display-6"><a href="#queue?status=In_Progress" className="text-decoration-none" style={{ color: ZEN.primary }}>{inProgressStatusCount}</a></h2>
             </div>
           </div>
         </div>
@@ -83,7 +84,7 @@ export default function StaffDashboard() {
           <div className="card text-center h-100">
             <div className="card-body">
               <h5 className="card-title text-muted">Waiting</h5>
-              <h2 className="display-6"><a href="#queue?status=Waiting_for_Requester" className="text-decoration-none">{waitingStatusCount}</a></h2>
+              <h2 className="display-6"><a href="#queue?status=Waiting_for_Requester" className="text-decoration-none" style={{ color: ZEN.primary }}>{waitingStatusCount}</a></h2>
             </div>
           </div>
         </div>
@@ -94,7 +95,7 @@ export default function StaffDashboard() {
           <div className="card h-100">
             <div className="card-body d-flex justify-content-between align-items-center">
               <h5 className="card-title text-muted mb-0">Unassigned</h5>
-              <h2 className="display-6 mb-0"><a href="#queue?ownerId=unassigned" className="text-decoration-none">{data.unassignedCount}</a></h2>
+              <h2 className="display-6 mb-0"><a href="#queue?ownerId=unassigned" className="text-decoration-none" style={{ color: ZEN.primary }}>{data.unassignedCount}</a></h2>
             </div>
           </div>
         </div>
@@ -102,7 +103,7 @@ export default function StaffDashboard() {
           <div className="card h-100">
             <div className="card-body d-flex justify-content-between align-items-center">
               <h5 className="card-title text-muted mb-0">My Assigned</h5>
-              <h2 className="display-6 mb-0"><a href="#queue?ownerId=me" className="text-decoration-none">{data.myAssignedCount}</a></h2>
+              <h2 className="display-6 mb-0"><a href="#queue?ownerId=me" className="text-decoration-none" style={{ color: ZEN.primary }}>{data.myAssignedCount}</a></h2>
             </div>
           </div>
         </div>
@@ -115,7 +116,7 @@ export default function StaffDashboard() {
              {Object.entries(data.priorityBreakdown).map(([priority, count]) => (
                 <div key={priority} className="card px-3 py-2 text-center">
                   <div className="small text-muted">{priority}</div>
-                  <div className="fw-bold"><a href={`#queue?itPriority=${priority}`} className="text-decoration-none">{count}</a></div>
+                  <div className="fw-bold"><a href={`#queue?itPriority=${priority}`} className="text-decoration-none" style={{ color: ZEN.primary }}>{count}</a></div>
                 </div>
              ))}
            </div>
@@ -139,7 +140,7 @@ export default function StaffDashboard() {
           {data.recentlyUpdated.map((ticket) => (
             <li key={ticket.id} className="list-group-item">
               <div className="d-flex w-100 justify-content-between">
-                <a href={`#ticket/${ticket.id}`} className="fw-bold text-decoration-none">{ticket.ticketNumber}</a>
+                <a href={`#ticket/${ticket.id}`} data-testid={`ticket-link-${ticket.id}`} className="fw-bold text-decoration-none">{ticket.ticketNumber}</a>
                 <small className="text-muted">{new Date(ticket.updatedAt).toLocaleDateString()}</small>
               </div>
               <p className="mb-1">{ticket.summary}</p>
@@ -152,3 +153,4 @@ export default function StaffDashboard() {
     </div>
   );
 }
+
