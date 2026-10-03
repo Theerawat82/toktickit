@@ -14,7 +14,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
-    if (isNaN(attachmentId)) {
+    if ((isNaN(attachmentId) || !Number.isInteger(attachmentId) || attachmentId <= 0)) {
       return res.status(400).json({ error: "Invalid attachment ID" });
     }
 
@@ -54,7 +54,7 @@ router.get("/:id/download", async (req: Request, res: Response) => {
     const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
-    if (isNaN(attachmentId)) {
+    if ((isNaN(attachmentId) || !Number.isInteger(attachmentId) || attachmentId <= 0)) {
       return res.status(400).json({ error: "Invalid attachment ID" });
     }
 
@@ -99,7 +99,7 @@ router.post("/:id/remove", async (req: Request, res: Response) => {
     const requesterId = req.user.id;
 
     const attachmentId = Number(req.params.id);
-    if (isNaN(attachmentId)) {
+    if ((isNaN(attachmentId) || !Number.isInteger(attachmentId) || attachmentId <= 0)) {
       return res.status(400).json({ error: "Invalid attachment ID" });
     }
 

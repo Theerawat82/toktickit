@@ -10,7 +10,6 @@ vi.mock("../../src/prisma.js", () => ({
   getPrisma: vi.fn(),
 }));
 
-// We'll mock fs.existsSync and download to avoid actual file system ops in some tests
 vi.mock("fs", async () => {
   const actual = await vi.importActual("fs");
   return {
@@ -24,6 +23,46 @@ describe("Attachments API", () => {
     vi.clearAllMocks();
   });
 
+  describe("IDOR Protection for Attachments (Issue 6)", () => {
+    const setupIdorMock = () => {
+      (getPrisma as any).mockReturnValue({
+        user: { findUnique: vi.fn().mockImplementation(({ where }: any) => {
+          if (where.id === 1) return Promise.resolve({ id: 1, role: "Requester", isActive: true });
+          if (where.id === 2) return Promise.resolve({ id: 2, role: "Requester", isActive: true });
+          return Promise.resolve(null);
+        })},
+        attachment: {
+          findUnique: vi.fn().mockResolvedValue({
+            id: 1, ticket: { requesterId: 2, requesterUserId: 2 }, isRemoved: false
+          })
+        }
+      });
+    };
+
+    it("should prevent Requester 1 from downloading Requester 2's attachment (404 IDOR)", async () => {
+      setupIdorMock();
+      const res = await request(app).get("/api/attachments/1/download").set("Authorization", bearer(1));
+      expect(res.status).toBe(404);
+      expect(res.body.error).toContain("not found");
+    });
+
+    it("should prevent Requester 1 from reading Requester 2's attachment metadata (404 IDOR)", async () => {
+      setupIdorMock();
+      const res = await request(app).get("/api/attachments/1").set("Authorization", bearer(1));
+      expect(res.status).toBe(404);
+      expect(res.body.error).toContain("not found");
+    });
+
+    it("should prevent Requester 1 from removing Requester 2's attachment (404 IDOR)", async () => {
+      setupIdorMock();
+      const res = await request(app).post("/api/attachments/1/remove")
+        .set("Authorization", bearer(1))
+        .send({ removalReason: "Oops" });
+      expect(res.status).toBe(404);
+      expect(res.body.error).toContain("not found");
+    });
+  });
+
   describe("POST /api/tickets/:id/attachments", () => {
     it("should return 400 if file is too large", async () => {
       (getPrisma as any).mockReturnValue({
@@ -33,8 +72,7 @@ describe("Attachments API", () => {
         },
       });
 
-      // Create a dummy large file content (fake memory for supertest)
-      const largeBuffer = Buffer.alloc(6 * 1024 * 1024); // 6MB
+      const largeBuffer = Buffer.alloc(6 * 1024 * 1024);
       const res = await request(app)
         .post("/api/tickets/1/attachments")
         .set("Authorization", bearer(1))

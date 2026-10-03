@@ -20,7 +20,7 @@ describe("Issue 5: Staff Dashboard API", () => {
 
     adminToken = jwt.sign({ id: adminUser.id, role: adminUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
     staffToken = jwt.sign({ id: staffUser.id, role: staffUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
-    reqToken = jwt.sign({ id: reqUser.id, role: reqUser.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
+    reqToken = jwt.sign({ id: reqUser!.id, role: reqUser!.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
 
     // We rely on seed data or we can create explicit tickets.
     // Let's create an explicit set of tickets to ensure predictability.
@@ -32,11 +32,11 @@ describe("Issue 5: Staff Dashboard API", () => {
 
     await prisma.ticket.createMany({
       data: [
-        { ticketNumber: "DASH-ST-001", summary: "T1", requestedPriority: "Low", currentStatus: "New", requesterId: reqUser.id, ticketOwnerId: null, categoryId: category.id, relatedSystemId: system.id, itPriority: "High" },
-        { ticketNumber: "DASH-ST-002", summary: "T2", requestedPriority: "Low", currentStatus: "Closed", requesterId: reqUser.id, ticketOwnerId: null, categoryId: category.id, relatedSystemId: system.id, itPriority: "Low" },
-        { ticketNumber: "DASH-ST-003", summary: "T3", requestedPriority: "Low", currentStatus: "Open", requesterId: reqUser.id, ticketOwnerId: staffUser.id, categoryId: category.id, relatedSystemId: system.id, itPriority: "Medium" },
-        { ticketNumber: "DASH-ST-004", summary: "T4", requestedPriority: "Low", currentStatus: "In Progress", requesterId: reqUser.id, ticketOwnerId: staffUser.id, categoryId: category.id, relatedSystemId: system.id, itPriority: "Urgent" },
-        { ticketNumber: "DASH-ST-005", summary: "T5", requestedPriority: "Low", currentStatus: "Cancelled", requesterId: reqUser.id, ticketOwnerId: staffUser.id, categoryId: category.id, relatedSystemId: system.id, itPriority: "Low" },
+        { ticketNumber: "DASH-ST-001", summary: "T1", requestedPriority: "Low", currentStatus: "New", requesterId: reqUser!.id, ticketOwnerId: null, categoryId: category.id, relatedSystemId: system.id, itPriority: "High" },
+        { ticketNumber: "DASH-ST-002", summary: "T2", requestedPriority: "Low", currentStatus: "Closed", requesterId: reqUser!.id, ticketOwnerId: null, categoryId: category.id, relatedSystemId: system.id, itPriority: "Low" },
+        { ticketNumber: "DASH-ST-003", summary: "T3", requestedPriority: "Low", currentStatus: "Open", requesterId: reqUser!.id, ticketOwnerId: staffUser.id, categoryId: category.id, relatedSystemId: system.id, itPriority: "Medium" },
+        { ticketNumber: "DASH-ST-004", summary: "T4", requestedPriority: "Low", currentStatus: "In Progress", requesterId: reqUser!.id, ticketOwnerId: staffUser.id, categoryId: category.id, relatedSystemId: system.id, itPriority: "Urgent" },
+        { ticketNumber: "DASH-ST-005", summary: "T5", requestedPriority: "Low", currentStatus: "Cancelled", requesterId: reqUser!.id, ticketOwnerId: staffUser.id, categoryId: category.id, relatedSystemId: system.id, itPriority: "Low" },
       ]
     });
     
@@ -44,7 +44,7 @@ describe("Issue 5: Staff Dashboard API", () => {
     const oldDate = new Date();
     oldDate.setUTCDate(oldDate.getUTCDate() - 8);
     const oldTicket = await prisma.ticket.create({
-      data: { ticketNumber: "DASH-ST-OLD", summary: "Old", requestedPriority: "Low", currentStatus: "New", requesterId: reqUser.id, categoryId: category.id, relatedSystemId: system.id }
+      data: { ticketNumber: "DASH-ST-OLD", summary: "Old", requestedPriority: "Low", currentStatus: "New", requesterId: reqUser!.id, categoryId: category.id, relatedSystemId: system.id }
     });
     await prisma.ticket.update({ where: { id: oldTicket.id }, data: { updatedAt: oldDate } });
   });

@@ -276,7 +276,7 @@ router.get("/", async (req: Request, res: Response) => {
 
       const catId = Number(category);
 
-      if (isNaN(catId)) {
+      if ((isNaN(catId) || !Number.isInteger(catId) || catId <= 0)) {
 
         return res.status(400).json({ error: "Invalid category ID" });
 
@@ -460,7 +460,7 @@ router.get("/queue", requireRole(["IT_Staff", "Administrator"]), async (req: Req
 
       const catId = Number(category);
 
-      if (!isNaN(catId)) {
+      if (!(isNaN(catId) || !Number.isInteger(catId) || catId <= 0)) {
 
         whereClause.categoryId = catId;
 
@@ -604,7 +604,7 @@ router.get("/:id", verifyTicketOwnership, async (req: Request, res: Response) =>
 
     const ticketId = Number(req.params.id);
 
-    if (isNaN(ticketId)) {
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) {
 
       return res.status(400).json({ error: "Invalid ticket ID" });
 
@@ -730,7 +730,7 @@ router.post("/:id/attachments", (req, res, next) => {
 
     const ticketId = Number(req.params.id);
 
-    if (isNaN(ticketId)) {
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) {
 
       return res.status(400).json({ error: "Invalid ticket ID" });
 
@@ -818,7 +818,7 @@ router.patch("/:id/owner", requireRole(["IT_Staff", "Administrator"]), async (re
     const ticketId = Number(req.params.id);
     const { ticketOwnerId, version } = req.body;
 
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
     if (version === undefined || typeof version !== "number") return res.status(400).json({ error: "version is required" });
 
     const prisma = getPrisma();
@@ -865,7 +865,7 @@ router.patch("/:id/priority", requireRole(["IT_Staff", "Administrator"]), async 
     const ticketId = Number(req.params.id);
     const { itPriority, version } = req.body;
 
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
     if (version === undefined || typeof version !== "number") return res.status(400).json({ error: "version is required" });
 
     const validPriorities = ["Low", "Medium", "High", "Urgent"];
@@ -903,7 +903,7 @@ router.patch("/:id/status", verifyTicketOwnership, async (req: Request, res: Res
     const ticketId = Number(req.params.id);
     const { status, version } = req.body;
     
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
     if (version === undefined || typeof version !== "number") return res.status(400).json({ error: "version is required" });
 
     if (status === undefined) {
@@ -987,7 +987,7 @@ router.post("/:id/comments", verifyTicketOwnership, async (req: Request, res: Re
 
 
 
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
 
 
 
@@ -1075,7 +1075,7 @@ router.get("/:id/comments", verifyTicketOwnership, async (req: Request, res: Res
 
     const ticketId = Number(req.params.id);
 
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
 
 
 
@@ -1152,7 +1152,7 @@ router.get("/:id/comments", verifyTicketOwnership, async (req: Request, res: Res
 router.post("/:id/actions", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
   try {
     const ticketId = Number(req.params.id);
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
 
     const { actionDescription, result, followUpRequired, followUpNote, attachmentNotes, performedById, actionDateTime, ticketId: bodyTicketId, version, id } = req.body;
 
@@ -1177,27 +1177,59 @@ router.post("/:id/actions", requireRole(["IT_Staff", "Administrator"]), async (r
     const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
 
-    const action = await prisma.$transaction(async (tx) => {
-      const created = await tx.actionTaken.create({
-        data: {
-          ticketId,
-          actionDescription: actionDescription.trim(),
-          result: result.trim(),
-          followUpRequired,
-          followUpNote: followUpRequired ? followUpNote.trim() : null,
-          attachmentNotes: attachmentNotes ? attachmentNotes.trim() : null,
-          performedById: req.user.id
-        },
-        include: { performedBy: { select: { id: true, name: true, role: true } } }
-      });
-      await tx.ticket.update({
-        where: { id: ticketId },
-        data: { updatedAt: new Date() }
-      });
-      return created;
-    });
+    try {
+      const action = await prisma.$transaction(async (tx) => {
+        // 1. Acquire advisory lock on the ticketId to serialize concurrent requests
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(${ticketId})`;
+        
+        // 2. Check for duplicate action in the last 10 seconds
+        const tenSecondsAgo = new Date(Date.now() - 10000);
+        const duplicate = await tx.actionTaken.findFirst({
+          where: {
+            ticketId,
+            actionDescription: actionDescription.trim(),
+            createdAt: { gte: tenSecondsAgo }
+          },
+          include: { performedBy: { select: { id: true, name: true, role: true } } }
+        });
 
-    res.status(201).json(action);
+        if (duplicate) {
+          // Instead of throwing, we return a special object indicating it's a duplicate
+          return { ...duplicate, _isDuplicate: true };
+        }
+
+        // 3. Create the new action
+        const created = await tx.actionTaken.create({
+          data: {
+            ticketId,
+            actionDescription: actionDescription.trim(),
+            result: result.trim(),
+            followUpRequired,
+            followUpNote: followUpRequired ? followUpNote.trim() : null,
+            attachmentNotes: attachmentNotes ? attachmentNotes.trim() : null,
+            performedById: req.user.id
+          },
+          include: { performedBy: { select: { id: true, name: true, role: true } } }
+        });
+        
+        await tx.ticket.update({
+          where: { id: ticketId },
+          data: { updatedAt: new Date() }
+        });
+        
+        return created;
+      });
+
+      if ((action as any)._isDuplicate) {
+        delete (action as any)._isDuplicate;
+        return res.status(200).json(action);
+      }
+      
+      return res.status(201).json(action);
+    } catch (error) {
+      console.error("Failed to create action taken:", error);
+      return res.status(500).json({ error: "Failed to create action taken" });
+    }
   } catch (error) {
     console.error("Failed to create action taken:", error);
     res.status(500).json({ error: "Failed to create action taken" });
@@ -1210,7 +1242,7 @@ router.patch("/:id/actions/:actionId", requireRole(["IT_Staff", "Administrator"]
   try {
     const ticketId = Number(req.params.id);
     const actionId = Number(req.params.actionId);
-    if (isNaN(ticketId) || isNaN(actionId)) return res.status(400).json({ error: "Invalid ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0) || (isNaN(actionId) || !Number.isInteger(actionId) || actionId <= 0)) return res.status(400).json({ error: "Invalid ID" });
 
     const { actionDescription, result, followUpRequired, followUpNote, attachmentNotes, version, performedById, actionDateTime, ticketId: bodyTicketId, id } = req.body;
 
@@ -1294,7 +1326,7 @@ router.patch("/:id/actions/:actionId", requireRole(["IT_Staff", "Administrator"]
 router.get("/:id/actions", verifyTicketOwnership, async (req: Request, res: Response) => {
   try {
     const ticketId = Number(req.params.id);
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
 
     const prisma = getPrisma();
     const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
@@ -1320,7 +1352,7 @@ router.patch("/:id/confirm-resolved", verifyTicketOwnership, async (req: Request
     const ticketId = Number(req.params.id);
     const { version } = req.body;
     
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
     if (version === undefined || typeof version !== "number") return res.status(400).json({ error: "version is required for updates" });
 
     const prisma = getPrisma();
@@ -1367,7 +1399,7 @@ router.post("/:id/internal-notes", requireRole(["IT_Staff", "Administrator"]), a
     const ticketId = Number(req.params.id);
     const { content } = req.body;
     
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
     if (!content) return res.status(400).json({ error: "Content is required" });
 
     const prisma = getPrisma();
@@ -1390,7 +1422,7 @@ router.post("/:id/internal-notes", requireRole(["IT_Staff", "Administrator"]), a
 router.get("/:id/internal-notes", requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
   try {
     const ticketId = Number(req.params.id);
-    if (isNaN(ticketId)) return res.status(400).json({ error: "Invalid ticket ID" });
+    if ((isNaN(ticketId) || !Number.isInteger(ticketId) || ticketId <= 0)) return res.status(400).json({ error: "Invalid ticket ID" });
 
     const prisma = getPrisma();
     const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });

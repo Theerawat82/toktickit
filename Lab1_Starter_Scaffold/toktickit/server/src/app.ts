@@ -20,6 +20,12 @@ const app = express();
 
 app.use(cors()); // lets the Vite dev server call this API
 app.use(express.json());
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && 'status' in err && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ error: "Malformed JSON payload" });
+  }
+  next(err);
+});
 
 // ---------------------------------------------------------------------------
 // Issue 2 — Health check

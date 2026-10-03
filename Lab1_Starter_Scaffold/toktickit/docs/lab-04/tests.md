@@ -17,3 +17,9 @@
 | **TEST-13** | Regress | Labs 1-3 | Authentication & Authorization | Users can login, logout, and access control remains intact for endpoints. | `e2e/regression/auth.spec.ts` | Pending |
 | **TEST-14** | Regress | Labs 1-3 | Public Comments & Internal Notes | Comments/Notes can still be added and are correctly scoped by user roles. | `e2e/regression/ticket-comments.spec.ts` | Pending |
 | **TEST-15** | Regress | Labs 1-3 | Ticket Attachments | File uploads and downloads continue to function correctly. | `e2e/regression/ticket-attachments.spec.ts` | Pending |
+
+| **TEST-16** | E2E | BR-09, Issue 6 | Duplicate Form Submission Protection | Double-clicking submit creates only one ticket/action. | `e2e/lab-04/regression-smoke.spec.ts` | Completed |
+| **TEST-17** | E2E | Form Integrity | Form Data Protection on Network Error | Values remain in form fields if the network fails or API returns 400/500. | `e2e/lab-04/regression-smoke.spec.ts` | Completed |
+| **TEST-18** | API | Issue 6 | Duplicate DB Submit Lock (`pg_advisory_xact_lock`) | Concurrent API requests for the same payload result in one 201 and one 200. | `server/tests/lab-04/actions-duplicate.test.ts` | Completed |
+| **TEST-19** | API | Issue 6 | Performance Smoke Test (N+1 Prevention) | Fetching tickets queue takes < 1000ms. | `server/tests/lab-04/performance-smoke.test.ts` | Pending |
+| **TEST-20** | API | Issue 6 | Migration Integrity Test | The database can be wiped and seeded repeatedly without failure. | `server/tests/lab-04/migration-integrity.test.ts` | Pending |

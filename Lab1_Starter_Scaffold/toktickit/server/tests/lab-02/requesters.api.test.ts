@@ -1,15 +1,34 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
+import { getPrisma } from "../../src/prisma.js";
+import { bearer } from "../helpers/auth.js";
+
+vi.mock("../../src/prisma.js", () => ({
+  getPrisma: vi.fn(),
+}));
 
 describe("GET /api/requesters", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const setupMock = () => {
+    (getPrisma as any).mockReturnValue({
+      user: { 
+        findUnique: vi.fn().mockResolvedValue({ id: 2, role: "IT_Staff", isActive: true }),
+        findMany: vi.fn().mockResolvedValue([{ id: 1, name: "Req", email: "req@req", isActive: true }]) 
+      }
+    });
+  };
+
   it("should return 200 OK and an array of active requesters", async () => {
-    const res = await request(app).get("/api/requesters?active=true");
+    setupMock();
+    const res = await request(app).get("/api/requesters?active=true").set("Authorization", bearer(2));
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
 
-    // Verify all returned items have isActive === true
     for (const requester of res.body) {
       expect(requester).toHaveProperty("id");
       expect(requester).toHaveProperty("name");
@@ -19,7 +38,8 @@ describe("GET /api/requesters", () => {
   });
 
   it("should return all requesters when no filter is applied", async () => {
-    const res = await request(app).get("/api/requesters");
+    setupMock();
+    const res = await request(app).get("/api/requesters").set("Authorization", bearer(2));
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
