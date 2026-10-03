@@ -27,6 +27,14 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   next(err);
 });
 
+// Reject legacy authentication headers (BR-06)
+app.use((req, res, next) => {
+  if (req.headers['mock-identity'] || req.headers['x-requester-id']) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+});
+
 // ---------------------------------------------------------------------------
 // Issue 2 — Health check
 // ---------------------------------------------------------------------------
