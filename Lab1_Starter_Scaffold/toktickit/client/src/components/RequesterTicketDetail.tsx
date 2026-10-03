@@ -527,10 +527,6 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
               </form>
             </div>
           </div>
-
-          <div style={{ overflowX: "auto", minWidth: 0 }}>
-            <ActionsTaken ticketId={ticket.id} userRole="Requester" />
-          </div>
         </div>
 
         {/* Sidebar (right column) */}
@@ -575,11 +571,12 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
             onAttachmentUpdated={loadTicket} 
           />
         </div>
+
+        {/* Actions Taken - full-width row so the table is not squeezed into the 8-col column */}
+        <div className="col-12">
+          <ActionsTaken ticketId={ticket.id} userRole="Requester" />
+        </div>
       </div>
     </div>
   );
 }
-
-
-
-

@@ -406,10 +406,6 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
               </div>
             )}
           </div>
-
-          <div style={{ overflowX: "auto", minWidth: 0 }}>
-            <ActionsTaken ticketId={ticket.id} userRole="IT_Staff" />
-          </div>
         </div>
 
         {/* Sidebar */}
@@ -456,10 +452,12 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
             </div>
           </div>
         </div>
+
+        {/* Actions Taken - full-width row so the table is not squeezed into the 8-col column */}
+        <div className="col-12">
+          <ActionsTaken ticketId={ticket.id} userRole="IT_Staff" />
+        </div>
       </div>
     </div>
   );
 }
-
-
-

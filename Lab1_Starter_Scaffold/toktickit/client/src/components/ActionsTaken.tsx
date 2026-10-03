@@ -183,7 +183,8 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
       {actions.length === 0 ? (
         <p>No actions taken yet.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
+        <div style={{ overflowX: 'auto', marginBottom: '10px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${ZEN.border}`, textAlign: 'left' }}>
               <th>Date/Time</th>
@@ -217,6 +218,7 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       {isStaffOrAdmin && !createMode && editActionId === null && (
