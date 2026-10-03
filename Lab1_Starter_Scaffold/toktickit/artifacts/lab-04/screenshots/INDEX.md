@@ -41,6 +41,7 @@ table itself sits in an `overflow-x: auto` container.
 
 > **Note (mobile):** at 375px the 7-column table needs ~549px (staff) / ~491px (requester), so the
 > right-hand columns (Follow-up, Attachment Notes, Actions/Edit) are reached by scrolling the table
-> sideways. The page itself does not scroll horizontally and nothing overlaps. There is no visual
-> scroll hint. The Edit button is still clickable on mobile (spec clicks it at every viewport).
+> sideways. The page itself does not scroll horizontally and nothing overlaps. A visual scroll hint 
+> ("Scroll for more →") is visible on mobile viewports. The Edit button is still clickable on mobile 
+> (spec clicks it at every viewport).
 > The app container is capped at `maxWidth: 640` in `App.tsx`, which is why the table cannot widen on desktop.
