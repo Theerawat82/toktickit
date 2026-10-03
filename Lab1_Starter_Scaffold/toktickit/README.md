@@ -80,7 +80,7 @@ npm run dev
 cd server
 npm test
 ```
-*(Note: Executed serially via ileParallelism: false in vitest.config.ts to prevent DB dropping issues)*
+*(Note: Executed serially via `fileParallelism: false` in vitest.config.ts to prevent DB dropping issues)*
 
 2. **Client Component Tests**
 ```bash
@@ -92,3 +92,56 @@ npm test
 ```bash
 npx playwright test
 ```
+
+
+4. **Generating Evidence Screenshots & Metrics**
+The project includes automated scripts to capture layout evidence and verify dashboard metrics across viewports.
+```bash
+# Capture screenshots for UI layout (outputs to artifacts/lab-04/screenshots/)
+npx playwright test e2e/lab-04/evidence-screenshots.spec.ts e2e/lab-04/ticket-detail-screenshots.spec.ts
+
+# Run dashboard metrics verification
+npx tsx scripts/verify-dashboard-metrics.ts
+```
+
+---
+
+## 🎭 Step-by-Step Demo Script (Presentation Order)
+
+To demonstrate the full IT Service Management workflow from end to end:
+
+1. **Requester Flow**
+   - Log in as `requester1@toktickit.com` (password: `Password123!`).
+   - Go to **Create Ticket**. Submit a new issue (e.g., "Cannot connect to VPN").
+   - View the created ticket in **My Tickets**.
+2. **IT Staff Flow & Action Taken**
+   - Log out, then log in as `staff1@toktickit.com`.
+   - View the **Staff Dashboard** and open the **Staff Ticket Queue**.
+   - Claim the newly created ticket (change status to **In Progress**).
+   - Scroll down to **Actions Taken** and click **Add Action Taken**. Document what was fixed and submit.
+   - Change the ticket status to **Resolved**. (Notice that *Business Rule BR-08* prevents resolution unless at least one Action Taken exists, which you just satisfied).
+3. **Dashboards**
+   - Navigate back to the **Staff Dashboard** to see live metrics update based on your resolution.
+4. **Administrator**
+   - Log out, then log in as `admin@toktickit.com`.
+   - View the **Staff Dashboard** to see elevated system-wide metrics (User Account counts, overall ticket statistics).
+
+---
+
+## 🛠️ Troubleshooting
+
+### Docker Container Not Running After Restart
+If Docker Desktop was just started and your backend fails to connect to the database:
+1. Run `docker ps` to verify the container is actually running.
+2. If it is not running, start it using:
+   ```bash
+   cd server
+   docker compose up -d
+   ```
+3. Wait a few seconds for PostgreSQL to initialize before running `npm run dev`.
+
+### PostgreSQL Port (5435) Check
+This session's `docker-compose.yml` configures the database on **port 5435** to avoid conflicts.
+- Ensure your `server/.env` uses `5435`:
+  `DATABASE_URL="postgresql://postgres:password@localhost:5435/toktickit"`
+- Test the database connection by running `npx prisma migrate status` inside `server/`. If you see "could not translate host name", ensure Docker Desktop is running and the port is correctly mapped.
