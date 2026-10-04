@@ -198,7 +198,7 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
 
   if (!user) return null;
   if (loading) return <div className="text-center py-5">Loading ticket details...</div>;
-  if (errorMsg) return <div className="alert alert-danger">{errorMsg}</div>;
+  if (errorMsg) return <div className="alert alert-danger" role="alert">{errorMsg}</div>;
   if (!ticket) return null;
 
   const getValidStatuses = (currentStatus: string) => {
@@ -351,8 +351,8 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
             {activeTab === "actions" && (
               <div className="card" style={{ borderColor: ZEN.border }}>
                 <div className="card-body">
-                  {actionError && <div className="alert alert-danger">{actionError}</div>}
-                  {actionSuccess && <div className="alert alert-success">{actionSuccess}</div>}
+                  {actionError && <div className="alert alert-danger" role="alert">{actionError}</div>}
+                  {actionSuccess && <div className="alert alert-success" role="alert">{actionSuccess}</div>}
 
                   <div className="mb-4">
                     <label className="fw-bold mb-2">Ticket Owner</label>

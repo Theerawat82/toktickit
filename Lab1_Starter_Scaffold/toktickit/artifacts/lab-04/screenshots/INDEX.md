@@ -58,14 +58,14 @@ table itself sits in an `overflow-x: auto` container.
 
 | Check | Screens It Applies To | Result | Evidence |
 |-------|----------------------|---------|----------|
-| Keyboard: every interactive control reachable via Tab | All forms & dashboards | Pass | Visual code inspection (native HTML buttons/inputs used) |
-| Visible focus indicator present on focused element | All interactive elements | Pass | Default Bootstrap focus rings verified |
+| Keyboard: every interactive control reachable via Tab | All forms & dashboards | Pass | Verified by `ui-style-a11y.spec.ts` Tab traversal test |
+| Visible focus indicator present on focused element | All interactive elements | Pass | Default Bootstrap focus rings verified by Playwright |
 | Modal/dialog focus trap + Escape-to-close | N/A | N/A | No modals are used in this UI |
-| Form fields have real associated labels | Create Ticket, Add Action | **Fail** | `CreateTicket.tsx` labels lack `htmlFor` attributes |
-| Validation errors are associated and announced | Form error banners | **Fail** | `alert` banners lack `role="alert"` and inputs lack `aria-describedby` |
-| Status/priority/private vs shared don't rely on color alone | Dashboards, Queues, Ticket Details | Pass | Status and Priority badges include explicit text |
-| No horizontal page-level scroll at any viewport | All major screens | Pass | Screenshot Playwright evaluations (`pageHasHorizontalScroll: false`) |
-| No clipped/overlapping content at any viewport | All major screens | Pass | Screenshot Playwright evaluations (`overlapsSidebar: false`) |
+| Form fields have real associated labels | Create Ticket, Add Action | Pass | Fixed missing `htmlFor` in `CreateTicket.tsx` and `StaffTicketQueue.tsx`; Verified by `axe-core/playwright` (`ui-style-a11y.spec.ts`) |
+| Validation errors are associated and announced | Form error banners | Pass | Fixed missing `role="alert"` in `CreateTicket.tsx` and Detail pages; Verified by `ui-style-a11y.spec.ts` |
+| Status/priority/private vs shared don't rely on color alone | Dashboards, Queues, Ticket Details | Pass | Status and Priority badges include explicit text (verified visually & via Axe) |
+| No horizontal page-level scroll at any viewport | All major screens | Pass | Verified by `ui-style-a11y.spec.ts` (`pageHasHorizontalScroll: false`) |
+| No clipped/overlapping content at any viewport | All major screens | Pass | Verified by `ticket-detail-screenshots.spec.ts` (`overlapsSidebar: false`) |
 | Zen Green design consistency (badges/cards) | All screens | Pass | Verified visually across all generated screenshots |
 | Active-page navigation indication present | Main navigation bar | Pass | Active state visually highlighted on selected Nav links |
 

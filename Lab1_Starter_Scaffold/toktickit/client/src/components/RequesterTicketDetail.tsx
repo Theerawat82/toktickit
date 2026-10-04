@@ -258,7 +258,7 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
 
   if (errorMsg) {
     return (
-      <div className="alert alert-danger">
+      <div className="alert alert-danger" role="alert">
         <h5 className="alert-heading mb-1">❌ Error</h5>
         <hr className="my-2" />
         <p className="mb-0">{errorMsg}</p>
@@ -302,10 +302,10 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
       </button>
     </div>
   )}
-  {confirmMsg && <div className="alert alert-success mt-3">{confirmMsg}</div>}
-  {confirmError && <div className="alert alert-danger mt-3">{confirmError}</div>}
+  {confirmMsg && <div className="alert alert-success mt-3" role="alert">{confirmMsg}</div>}
+  {confirmError && <div className="alert alert-danger mt-3" role="alert">{confirmError}</div>}
   {ticket.currentStatus === "Resolved" && ticket.requesterConfirmedResolved && !confirmMsg && (
-    <div className="alert alert-success mt-3">You confirmed this resolution — IT Staff will do a final review.</div>
+    <div className="alert alert-success mt-3" role="alert">You confirmed this resolution — IT Staff will do a final review.</div>
   )}
 
           {/* Ticket header card */}

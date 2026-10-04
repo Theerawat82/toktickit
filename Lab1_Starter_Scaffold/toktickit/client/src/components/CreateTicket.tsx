@@ -223,52 +223,57 @@ export default function CreateTicket() {
       </div>
       <div className="card-body">
         {successMessage && (
-          <div className="alert alert-success" data-testid="success-banner">
+          <div className="alert alert-success" role="alert" data-testid="success-banner">
             {successMessage}
           </div>
         )}
         
         {apiError && (
-          <div className="alert alert-danger" data-testid="error-banner">
+          <div className="alert alert-danger" role="alert" data-testid="error-banner">
             {apiError}
           </div>
         )}
 
         <form onSubmit={handleSubmit} data-testid="create-ticket-form">
           <div className="mb-3">
-            <label className="form-label fw-bold">Requester</label>
+            <label htmlFor="requesterInput" className="form-label fw-bold">Requester</label>
             <input
               type="text"
               className="form-control"
+              id="requesterInput"
               value={`${user.name} (${user.email})`}
               disabled
             />
           </div>
 
           <div className="mb-3">
-            <label className="form-label fw-bold">Summary *</label>
+            <label htmlFor="summaryInput" className="form-label fw-bold">Summary *</label>
             <input
               type="text"
               className={`form-control ${summaryError ? "is-invalid" : ""}`}
+              id="summaryInput"
+              aria-describedby={summaryError ? "summaryErrorDesc" : undefined}
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               placeholder="Brief description of the issue"
               data-testid="input-summary"
             />
-            {summaryError && <div className="invalid-feedback">{summaryError}</div>}
+            {summaryError && <div id="summaryErrorDesc" className="invalid-feedback" role="alert">{summaryError}</div>}
           </div>
 
           <div className="mb-3">
-            <label className="form-label fw-bold">Description *</label>
+            <label htmlFor="descriptionInput" className="form-label fw-bold">Description *</label>
             <textarea
               className={`form-control ${descriptionError ? "is-invalid" : ""}`}
               rows={4}
+              id="descriptionInput"
+              aria-describedby={descriptionError ? "descriptionErrorDesc" : undefined}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide detailed information (at least 20 characters)"
               data-testid="input-description"
             ></textarea>
-            {descriptionError && <div className="invalid-feedback">{descriptionError}</div>}
+            {descriptionError && <div id="descriptionErrorDesc" className="invalid-feedback" role="alert">{descriptionError}</div>}
           </div>
 
           {/* Attachments Section */}
@@ -329,9 +334,10 @@ export default function CreateTicket() {
 
           <div className="row">
             <div className="col-md-4 mb-3">
-              <label className="form-label fw-bold">Category *</label>
+              <label htmlFor="categorySelect" className="form-label fw-bold">Category *</label>
               <select
                 className="form-select"
+                id="categorySelect"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
                 data-testid="select-category"
@@ -343,9 +349,10 @@ export default function CreateTicket() {
               </select>
             </div>
             <div className="col-md-4 mb-3">
-              <label className="form-label fw-bold">Related System *</label>
+              <label htmlFor="systemSelect" className="form-label fw-bold">Related System *</label>
               <select
                 className="form-select"
+                id="systemSelect"
                 value={systemId}
                 onChange={(e) => setSystemId(e.target.value)}
                 data-testid="select-system"
@@ -357,9 +364,10 @@ export default function CreateTicket() {
               </select>
             </div>
             <div className="col-md-4 mb-3">
-              <label className="form-label fw-bold">Priority *</label>
+              <label htmlFor="prioritySelect" className="form-label fw-bold">Priority *</label>
               <select
                 className="form-select"
+                id="prioritySelect"
                 value={requestedPriority}
                 onChange={(e) => setRequestedPriority(e.target.value)}
                 data-testid="select-priority"

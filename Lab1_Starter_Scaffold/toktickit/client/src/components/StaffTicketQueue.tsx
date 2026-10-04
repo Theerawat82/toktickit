@@ -224,22 +224,19 @@ export default function StaffTicketQueue() {
         {/* ── Filter Controls ── */}
         <div className="row g-2 mb-3" data-testid="filter-controls">
           <div className="col-12 col-md-4">
-            <input
-              type="text"
-              className="form-control form-control-sm"
+            <input aria-label="Search" type="text" className="form-control form-control-sm"
               placeholder="Search by ticket number or summary..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              data-testid="search-input"
+              aria-label="Search tickets" data-testid="search-input"
               style={{ borderColor: ZEN.border }}
             />
           </div>
           <div className="col-6 col-md-2">
-            <select
-              className="form-select form-select-sm"
+            <select aria-label="Filter" className="form-select form-select-sm"
               value={statusFilter}
               onChange={(e) => handleStatusChange(e.target.value)}
-              data-testid="filter-status"
+              aria-label="Filter by status" data-testid="filter-status"
               style={{ borderColor: ZEN.border }}
             >
               <option value="">All Statuses</option>
@@ -250,8 +247,7 @@ export default function StaffTicketQueue() {
           </div>
           {/* Bug 6: Category filter <select> rendered and wired to categoryFilter state */}
           <div className="col-6 col-md-2">
-            <select
-              className="form-select form-select-sm"
+            <select aria-label="Filter" className="form-select form-select-sm"
               value={categoryFilter}
               onChange={(e) => handleCategoryChange(e.target.value)}
               data-testid="filter-category"
@@ -264,11 +260,10 @@ export default function StaffTicketQueue() {
             </select>
           </div>
           <div className="col-6 col-md-2">
-            <select
-              className="form-select form-select-sm"
+            <select aria-label="Filter" className="form-select form-select-sm"
               value={itPriorityFilter}
               onChange={(e) => handlePriorityChange(e.target.value)}
-              data-testid="filter-priority"
+              aria-label="Filter by priority" data-testid="filter-priority"
               style={{ borderColor: ZEN.border }}
             >
               <option value="">All Priorities</option>
@@ -279,8 +274,7 @@ export default function StaffTicketQueue() {
           </div>
           {/* Bug 7: Owner filter populated from staffUsers (IT_Staff + Administrator) */}
           <div className="col-6 col-md-2">
-            <select
-              className="form-select form-select-sm"
+            <select aria-label="Filter" className="form-select form-select-sm"
               value={ownerFilter ? String(ownerFilter) : ""}
               onChange={(e) => handleOwnerChange(e.target.value)}
               data-testid="filter-owner"
@@ -293,11 +287,10 @@ export default function StaffTicketQueue() {
             </select>
           </div>
           <div className="col-6 col-md-2">
-            <select
-              className="form-select form-select-sm"
+            <select aria-label="Filter" className="form-select form-select-sm"
               value={sort}
               onChange={(e) => { setSort(e.target.value); resetPage(); }}
-              data-testid="sort-select"
+              aria-label="Sort tickets" data-testid="sort-select"
               style={{ borderColor: ZEN.border }}
             >
               <option value="createdAt:desc">Newest First</option>
