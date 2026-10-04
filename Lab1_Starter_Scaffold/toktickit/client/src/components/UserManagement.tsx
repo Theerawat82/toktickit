@@ -202,7 +202,7 @@ const UserManagement: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <select className="form-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+          <select aria-label="Filter by role" className="form-select" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
             <option value="">All Roles</option>
             <option value="Requester">Requester</option>
             <option value="IT_Staff">IT Staff</option>
