@@ -54,7 +54,7 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
       const res = await apiFetch(`/api/tickets/${ticketId}/actions`);
       if (res.ok) {
         const data = await res.json();
-        setActions(data);
+        setActions(Array.isArray(data) ? data : (data.actions || []));
       } else {
         setError("Failed to fetch actions");
       }
@@ -183,7 +183,12 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
       {actions.length === 0 ? (
         <p>No actions taken yet.</p>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '10px' }}>
+        <>
+          <div className="d-block d-md-none text-muted" style={{ fontSize: '0.85em', marginBottom: '5px' }}>
+            <small>Scroll for more →</small>
+          </div>
+          <div style={{ overflowX: 'auto', marginBottom: '10px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: `2px solid ${ZEN.border}`, textAlign: 'left' }}>
               <th>Date/Time</th>
@@ -217,6 +222,8 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
             ))}
           </tbody>
         </table>
+        </div>
+        </>
       )}
 
       {isStaffOrAdmin && !createMode && editActionId === null && (
@@ -239,12 +246,12 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
 
           <div style={{ marginBottom: '10px' }}>
             <label htmlFor="actionDescription">Action Description *</label><br/>
-            <textarea id="actionDescription" value={actionDescription} onChange={e => setActionDescription(e.target.value)} style={{ width: '100%' }} />
+            <textarea id="actionDescription" name="actionDescription" value={actionDescription} onChange={e => setActionDescription(e.target.value)} style={{ width: '100%' }} />
           </div>
 
           <div style={{ marginBottom: '10px' }}>
             <label htmlFor="result">Result *</label><br/>
-            <textarea id="result" value={result} onChange={e => setResult(e.target.value)} style={{ width: '100%' }} />
+            <textarea id="result" name="result" value={result} onChange={e => setResult(e.target.value)} style={{ width: '100%' }} />
           </div>
 
           <div style={{ marginBottom: '10px' }}>
@@ -273,3 +280,6 @@ export default function ActionsTaken({ ticketId, userRole }: { ticketId: number,
     </div>
   );
 }
+
+
+

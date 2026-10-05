@@ -23,19 +23,27 @@ router.get("/staff", requireRole(["IT_Staff", "Administrator"]), async (req: Req
     const myAssignedCount = await prisma.ticket.count({
       where: {
         ticketOwnerId: req.user!.id,
-        currentStatus: { notIn: ["Resolved", "Closed", "Cancelled"] },
+        currentStatus: { notIn: ["Closed", "Cancelled"] },
       },
     });
 
-    // 3. statusBreakdown
+    // 3. statusBreakdown (All 8 statuses)
     const groupedByStatus = await prisma.ticket.groupBy({
       by: ["currentStatus"],
       _count: true,
     });
+    
+    // Ensure all 8 statuses are present
+    const allStatuses = ["New", "Open", "In_Progress", "Waiting_for_Requester", "Resolved", "Closed", "Reopened", "Cancelled"];
     const statusBreakdown: Record<string, number> = {};
+    for (const s of allStatuses) {
+      statusBreakdown[s] = 0;
+    }
+    
     for (const g of groupedByStatus) {
-      const key = g.currentStatus === "In_Progress" ? "InProgress" : g.currentStatus;
-      statusBreakdown[key] = g._count;
+      if (statusBreakdown[g.currentStatus] !== undefined) {
+        statusBreakdown[g.currentStatus] = g._count;
+      }
     }
 
     // 4. priorityBreakdown
@@ -52,7 +60,7 @@ router.get("/staff", requireRole(["IT_Staff", "Administrator"]), async (req: Req
       priorityBreakdown[g.itPriority || "Unprioritized"] = g._count;
     }
 
-    // 5. recentlyUpdated
+    // 5. recentlyUpdated (Capped list of summary objects, cap = 10)
     const recentlyUpdatedRows = await prisma.ticket.findMany({
       where: {
         updatedAt: { gte: sevenDaysAgo },
@@ -113,21 +121,42 @@ router.get("/requester", requireRole(["Requester"]), async (req: Request, res: R
       _count: true,
     });
 
-    const myTickets: Record<string, number> = {
+    const statusBreakdown: Record<string, number> = {
       "Open": 0,
       "InProgress": 0,
+      "WaitingForRequester": 0,
       "Resolved": 0,
       "Closed": 0
     };
 
     for (const g of groupedByStatus) {
-      if (g.currentStatus === "Open" || g.currentStatus === "New") myTickets["Open"] += g._count;
-      else if (g.currentStatus === "In_Progress" || g.currentStatus === "Waiting_for_Requester") myTickets["InProgress"] += g._count;
-      else if (g.currentStatus === "Resolved") myTickets["Resolved"] += g._count;
-      else if (g.currentStatus === "Closed") myTickets["Closed"] += g._count;
+      if (g.currentStatus === "Open" || g.currentStatus === "New" || g.currentStatus === "Reopened") statusBreakdown["Open"] += g._count;
+      else if (g.currentStatus === "In_Progress") statusBreakdown["InProgress"] += g._count;
+      else if (g.currentStatus === "Waiting_for_Requester") statusBreakdown["WaitingForRequester"] += g._count;
+      else if (g.currentStatus === "Resolved") statusBreakdown["Resolved"] += g._count;
+      else if (g.currentStatus === "Closed" || g.currentStatus === "Cancelled") statusBreakdown["Closed"] += g._count;
     }
 
-    res.status(200).json({ myTickets });
+    // myTickets (Capped list of summary objects, cap = 10)
+    const myTicketsList = await prisma.ticket.findMany({
+      where: {
+        requesterId,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 10,
+      select: {
+        id: true,
+        ticketNumber: true,
+        summary: true,
+        currentStatus: true,
+        updatedAt: true,
+      },
+    });
+
+    res.status(200).json({ 
+      statusBreakdown,
+      myTickets: myTicketsList 
+    });
   } catch (error) {
     console.error("Requester dashboard error:", error);
     res.status(500).json({ error: "Failed to fetch dashboard" });

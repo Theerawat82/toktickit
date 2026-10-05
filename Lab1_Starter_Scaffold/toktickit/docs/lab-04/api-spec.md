@@ -100,3 +100,72 @@ Retrieves aggregated metrics for the Requester dashboard.
       }
     }
     ```
+
+
+## 3. Dashboards
+
+### `GET /api/dashboard/requester`
+Retrieves dashboard metrics and recent tickets for the authenticated Requester.
+*   **Authorization:** Requesters only.
+*   **Response (200 OK):**
+    ```json
+    {
+      "statusBreakdown": {
+        "Open": 2,
+        "InProgress": 1,
+        "Resolved": 0,
+        "Closed": 5
+      },
+      "myTickets": [
+        { "id": 1, "ticketNumber": "INC-00001", "summary": "...", "currentStatus": "Open", "updatedAt": "..." }
+      ]
+    }
+    ```
+    *Note:* `Open` includes New, Open, Reopened statuses. `Closed` includes Closed, Cancelled.
+
+### `GET /api/dashboard/staff`
+Retrieves dashboard metrics and recent tickets for the authenticated IT Staff / Administrator.
+*   **Authorization:** IT Staff and Admins.
+*   **Response (200 OK):**
+    ```json
+    {
+      "myAssignedCount": 3,
+      "unassignedCount": 10,
+      "statusBreakdown": {
+        "New": 5, "Open": 2, "In Progress": 3, "Waiting for Requester": 0, 
+        "Resolved": 1, "Closed": 10, "Reopened": 1, "Cancelled": 1
+      },
+      "recentlyUpdated": [
+         { "id": 1, "ticketNumber": "INC-00001", "summary": "...", "currentStatus": "New", "updatedAt": "..." }
+      ]
+    }
+    ```
+
+## 4. Health Endpoint
+
+### `GET /api/health`
+Checks the status of the API and database connectivity.
+*   **Authorization:** Public (Unauthenticated allowed).
+*   **Response (200 OK):**
+    ```json
+    {
+      "status": "ok",
+      "service": "TokTickIT API"
+    }
+    ```
+*   **Response (503 Service Unavailable):** Returned if the database query fails.
+
+## 5. Authorization Matrix (Expected HTTP Status Codes)
+
+| Endpoint | Method | Unauth | Req (Own) | Req (Other) | IT Staff | Admin | Inactive | MustChangePwd | NonExistent ID | Invalid ID |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `/api/health` | GET | 200 | 200 | 200 | 200 | 200 | 200 | 200 | N/A | N/A |
+| `/api/dashboard/requester`| GET | 401 | 200 | 200 | 403 | 403 | 403 | 403 | N/A | N/A |
+| `/api/dashboard/staff` | GET | 401 | 403 | 403 | 200 | 200 | 403 | 403 | N/A | N/A |
+| `/api/tickets/:id/actions` | GET | 401 | 200 | 404 | 200 | 200 | 403 | 403 | 404 | 400 |
+| `/api/tickets/:id/actions` | POST | 401 | 403 | 403 | 201 | 201 | 403 | 403 | 404 | 400 |
+| `/api/tickets/:id/actions/:actionId` | PATCH | 401 | 403 | 403 | 200 | 200 | 403 | 403 | 404 | 400 |
+  | `/api/tickets/:id/status` | PATCH | 401 | 403 | 404 | 200 | 200 | 403 | 403 | 404 | 400 |
+| `/api/tickets/:id/confirm-resolved` | PATCH | 401 | 200 | 404 | 403 | 403 | 403 | 403 | 404 | 400 |
+| `/api/tickets/:id/owner` | PATCH | 401 | 403 | 403 | 200 | 200 | 403 | 403 | 404 | 400 |
+| `/api/tickets/:id/priority` | PATCH | 401 | 403 | 403 | 200 | 200 | 403 | 403 | 404 | 400 |

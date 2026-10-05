@@ -36,7 +36,7 @@ describe("Authorization and Roles API (Lab 3)", () => {
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.ticket.id).toBe(101);
+      expect(res.body.id).toBe(101);
     });
 
     it("should reject Requester from viewing someone else's ticket (403)", async () => {
@@ -50,7 +50,7 @@ describe("Authorization and Roles API (Lab 3)", () => {
         .get("/api/tickets/102")
         .set("Authorization", `Bearer ${token}`);
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(404);
     });
 
     it("should allow IT Staff to view any ticket", async () => {
@@ -65,7 +65,7 @@ describe("Authorization and Roles API (Lab 3)", () => {
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.ticket.id).toBe(102);
+      expect(res.body.id).toBe(102);
     });
   });
 

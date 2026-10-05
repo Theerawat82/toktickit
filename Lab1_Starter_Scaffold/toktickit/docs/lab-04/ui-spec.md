@@ -32,3 +32,12 @@ All new components must adhere to the existing application design system, mainta
 *   **Forbidden State:** Ensure UI elements like the "Add Action" button are completely hidden from unauthorized users (Requesters), rather than just disabled.
 *   **Safe-failure State:** If a dashboard fails to load metrics, display a localized error message ("Failed to load metrics") without crashing the rest of the application layout.
 *   **Responsiveness:** All dashboards and tables must be responsive, gracefully stacking or scrolling horizontally on mobile devices.
+
+
+## 4. Dashboard Implementation Details
+*   **Requester Dashboard:**
+    *   Cards MUST precisely be: "Open" (New + Open + Reopened), "In Progress" (In Progress only), "Waiting for you" (Waiting for Requester), "Resolved" (Resolved only), "Closed" (Closed + Cancelled).
+    *   Clicking any card MUST drill-down to a list containing exactly the same count.
+*   **Staff Dashboard:**
+    *   Cards MUST show per-status counts: New, Open, In Progress, Waiting for Requester, My Assigned, Unassigned.
+    *   Reopened MUST be visible (either as its own card or in a breakdown). All 8 core statuses must be represented or queryable.

@@ -92,7 +92,7 @@ describe('TicketWorkflow Component', () => {
       expect(options).toEqual(['New', 'Open', 'Cancelled']);
     });
 
-    it('handles 400 BR-06 error specific message', async () => {
+    it('handles 400 BR-08 error specific message', async () => {
       setupApiMock({
         PATCH: (url: string, options: any) => Promise.resolve({
           ok: false,
@@ -160,7 +160,7 @@ describe('TicketWorkflow Component', () => {
       (api.apiFetch as any).mockImplementation((url: string, options: any) => {
         if (options && options.method === 'PATCH') {
           isConfirmed = true;
-          return Promise.resolve({ ok: true, json: async () => ({ ...mockTicket, currentStatus: "Resolved", requesterConfirmedResolved: true }) });
+          return Promise.resolve({ ok: true, json: async () => ({ ticket: { ...mockTicket, currentStatus: "Resolved", requesterConfirmedResolved: true } }) });
         }
         if (url.includes('/comments')) return Promise.resolve({ ok: true, json: async () => [] });
         if (url.includes('/actions')) return Promise.resolve({ ok: true, json: async () => [] });
@@ -178,3 +178,4 @@ describe('TicketWorkflow Component', () => {
     });
   });
 });
+

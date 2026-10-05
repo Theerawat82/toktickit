@@ -90,7 +90,7 @@ describe("Issue 4: Ticket Workflow API", () => {
         .patch(`/api/tickets/${testTicket.id}/status`)
         .set("Authorization", `Bearer ${staffToken}`)
         .send({ status: "Open", version: testTicket.version });
-      expect(res.status).toBe(200);
+      if(res.status===403)console.log("BODY:",res.body);expect(res.status).toBe(200);
       expect(res.body.ticket.currentStatus).toBe("Open");
       expect(res.body.ticket.version).toBe(testTicket.version + 1);
       testTicket = res.body.ticket;
@@ -106,13 +106,13 @@ describe("Issue 4: Ticket Workflow API", () => {
       expect(res.body.currentServerRow).toBeDefined();
     });
 
-    it("should reject transition to Resolved if no Action Taken exists (BR-06)", async () => {
+    it("should reject transition to Resolved if no Action Taken exists (BR-08)", async () => {
       // First move to In Progress
       let res = await request(app)
         .patch(`/api/tickets/${testTicket.id}/status`)
         .set("Authorization", `Bearer ${staffToken}`)
         .send({ status: "In Progress", version: testTicket.version });
-      expect(res.status).toBe(200);
+      if(res.status===403)console.log("BODY:",res.body);expect(res.status).toBe(200);
       testTicket = res.body.ticket;
 
       // Try resolving
@@ -141,7 +141,7 @@ describe("Issue 4: Ticket Workflow API", () => {
         .patch(`/api/tickets/${testTicket.id}/status`)
         .set("Authorization", `Bearer ${staffToken}`)
         .send({ status: "Resolved", version: testTicket.version });
-      expect(res.status).toBe(200);
+      if(res.status===403)console.log("BODY:",res.body);expect(res.status).toBe(200);
       expect(res.body.ticket.currentStatus).toBe("Resolved");
       testTicket = res.body.ticket;
       expect(new Date(testTicket.updatedAt).getTime()).toBeGreaterThan(new Date(beforeTicket!.updatedAt).getTime());
@@ -162,7 +162,7 @@ describe("Issue 4: Ticket Workflow API", () => {
         .patch(`/api/tickets/${testTicket.id}/confirm-resolved`)
         .set("Authorization", `Bearer ${requesterToken}`)
         .send({ version: testTicket.version });
-      expect(res.status).toBe(200);
+      if(res.status===403)console.log("BODY:",res.body);expect(res.status).toBe(200);
       expect(res.body.ticket.requesterConfirmedResolved).toBe(true);
       expect(res.body.ticket.currentStatus).toBe("Resolved"); // Unchanged
       testTicket = res.body.ticket;
@@ -181,7 +181,7 @@ describe("Issue 4: Ticket Workflow API", () => {
         .patch(`/api/tickets/${testTicket.id}/status`)
         .set("Authorization", `Bearer ${staffToken}`)
         .send({ status: "Reopened", version: testTicket.version });
-      expect(res.status).toBe(200);
+      if(res.status===403)console.log("BODY:",res.body);expect(res.status).toBe(200);
       expect(res.body.ticket.currentStatus).toBe("Reopened");
       expect(res.body.ticket.requesterConfirmedResolved).toBe(false); // Reset to false
       testTicket = res.body.ticket;

@@ -58,17 +58,19 @@ describe("Issue 5: Requester Dashboard API", () => {
   it("should return myTickets correctly scoped", async () => {
     const res = await request(app).get("/api/dashboard/requester").set("Authorization", `Bearer ${req1Token}`);
     expect(res.status).toBe(200);
-    expect(res.body.myTickets).toBeDefined();
-    expect(typeof res.body.myTickets["Open"]).toBe("number");
+    expect(res.body.statusBreakdown).toBeDefined();
+    expect(typeof res.body.statusBreakdown["Open"]).toBe("number");
+    expect(Array.isArray(res.body.myTickets)).toBe(true);
   });
 
   it("zero-ticket Requester gets all-zero/empty response, 200", async () => {
     // reqUser2 has zero tickets (seeded)
     const res = await request(app).get("/api/dashboard/requester").set("Authorization", `Bearer ${req2Token}`);
     expect(res.status).toBe(200);
-    expect(res.body.myTickets["Open"]).toBe(0);
-    expect(res.body.myTickets["InProgress"]).toBe(0);
-    expect(res.body.myTickets["Resolved"]).toBe(0);
-    expect(res.body.myTickets["Closed"]).toBe(0);
+    expect(res.body.statusBreakdown["Open"]).toBe(0);
+    expect(res.body.statusBreakdown["InProgress"]).toBe(0);
+    expect(res.body.statusBreakdown["Resolved"]).toBe(0);
+    expect(res.body.statusBreakdown["Closed"]).toBe(0);
+    expect(res.body.myTickets.length).toBe(0);
   });
 });

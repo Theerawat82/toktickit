@@ -2,13 +2,7 @@ import React, { useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext.js";
 import { apiFetch } from "../api.js";
 
-const ZEN = {
-  primary: "#006B3C",
-  secondary: "#0B7A46",
-  error: "#D92D20",
-  neutral: "#344054",
-  border: "#D0D5DD",
-};
+import { ZEN } from '../theme.js';
 
 export interface Attachment {
   id: number;
@@ -345,3 +339,5 @@ export default function AttachmentSection({ ticketId, attachments, onAttachmentU
     </div>
   );
 }
+
+
