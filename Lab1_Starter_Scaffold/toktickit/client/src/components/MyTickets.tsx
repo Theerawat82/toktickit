@@ -224,7 +224,7 @@ export default function MyTickets() {
         {/* ── Filter Controls ── */}
         <div className="row g-2 mb-3" data-testid="filter-controls">
           <div className="col-12 col-md-4">
-            <input aria-label="Search" type="text" className="form-control form-control-sm"
+            <input type="text" className="form-control form-control-sm"
               placeholder="Search by ticket number or summary..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -246,7 +246,7 @@ export default function MyTickets() {
             </select>
           </div>
           <div className="col-6 col-md-2">
-            <select aria-label="Filter" className="form-select form-select-sm"
+            <select className="form-select form-select-sm"
               value={priorityFilter}
               onChange={(e) => handlePriorityChange(e.target.value)}
               aria-label="Filter by priority" data-testid="filter-priority"
@@ -259,7 +259,7 @@ export default function MyTickets() {
             </select>
           </div>
           <div className="col-6 col-md-2">
-            <select aria-label="Filter" className="form-select form-select-sm"
+            <select className="form-select form-select-sm"
               value={statusFilter}
               onChange={(e) => handleStatusChange(e.target.value)}
               aria-label="Filter by status" data-testid="filter-status"
@@ -272,7 +272,7 @@ export default function MyTickets() {
             </select>
           </div>
           <div className="col-6 col-md-2">
-            <select aria-label="Filter" className="form-select form-select-sm"
+            <select className="form-select form-select-sm"
               value={sort}
               onChange={(e) => { setSort(e.target.value); resetPage(); }}
               aria-label="Sort tickets" data-testid="sort-select"
@@ -466,6 +466,7 @@ export default function MyTickets() {
     </div>
   );
 }
+
 
 
 
