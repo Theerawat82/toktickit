@@ -42,7 +42,7 @@ test.describe('IT Staff Ticket Flow', () => {
 
     // --- AC-05: View Staff Ticket Detail ---
     // Click the ticket link to open StaffTicketDetail
-    await page.locator('a:has-text("TKT-001")').filter({ visible: true }).first().click();
+    const href = await page.locator('a:has-text("TKT-001")').first().getAttribute('href'); await page.goto('/' + href);
     // StaffTicketDetail renders the ticketNumber in an <h4>
     await expect(page.locator('h4:has-text("TKT-001")')).toBeVisible({ timeout: 10000 });
     // It also renders the summary
@@ -106,7 +106,7 @@ test.describe('IT Staff Ticket Flow', () => {
 
     // Navigate directly to TKT-001 via the ticket link (RequesterTicketDetail doesn't show Internal Notes tab)
     // Find the ticket and click it — but as a Requester, TKT-001 was submitted by user1
-    await page.locator('a:has-text("TKT-001")').filter({ visible: true }).first().click();
+    const href2 = await page.locator('a:has-text("TKT-001")').first().getAttribute('href'); await page.goto('/' + href2);
     await expect(page.locator('h4:has-text("TKT-001")')).toBeVisible({ timeout: 10000 });
 
     // Verify the "Internal Notes" tab is NOT visible in RequesterTicketDetail

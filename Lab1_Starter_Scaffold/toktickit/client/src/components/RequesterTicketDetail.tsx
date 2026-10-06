@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext.js";
 import { apiFetch } from "../api.js";
 import AttachmentSection from "./AttachmentSection.js";
+import ActionsTaken from "./ActionsTaken.js";
 
 // ---------------------------------------------------------------------------
 // Design tokens — Zen Green palette (ui-spec.md §1)
@@ -47,7 +48,7 @@ const roleBadgeStyle: Record<string, { bg: string; color: string }> = {
 const ACTIVE_STATUSES = new Set(["New", "Open", "In Progress", "In_Progress", "Waiting for Requester", "Waiting_for_Requester", "Reopened"]);
 
 function Badge({ text, map }: { text: string; map: Record<string, { bg: string; color: string }> }) {
-  const key = text.replace(/\s+/g, "_");
+  const key = (text || "").replace(/\s+/g, "_");
   const style = map[key] ?? map[text] ?? { bg: "#F2F4F7", color: "#344054" };
   return (
     <span
@@ -138,13 +139,13 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
       const res = await apiFetch(`/api/tickets/${ticketId}/comments`);
       if (!res.ok) return; // Silently ignore — don't break the ticket view
       const data = await res.json();
-      console.log("loadComments DATA:", data);
+      
       if (Array.isArray(data)) {
-        console.log("loadComments SETTING DATA:", data);
+        
         setComments(data);
       }
     } catch (e) {
-      console.log("loadComments ERROR:", e);
+      
     }
   }, [ticketId, ticket]);
 
@@ -155,6 +156,37 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
   // ---------------------------------------------------------------------------
   // Post a public comment (AC-07 / BR-09)
   // ---------------------------------------------------------------------------
+  
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmMsg, setConfirmMsg] = useState("");
+  const [confirmError, setConfirmError] = useState("");
+
+  const handleConfirmResolved = async () => {
+    setConfirmLoading(true);
+    setConfirmError("");
+    setConfirmMsg("");
+    try {
+      const res = await apiFetch(`/api/tickets/${ticketId}/confirm-resolved`, {
+        method: "PATCH",
+        body: JSON.stringify({ version: ticket.version })
+      });
+      const data = await res.json();
+      if (res.status === 409) {
+        setTicket(data.currentServerRow);
+        setConfirmError("This ticket was updated elsewhere — refreshing to the latest state");
+      } else if (!res.ok) {
+        setConfirmError(data.error || "Failed to confirm resolution");
+      } else {
+        setTicket(data);
+        setConfirmMsg("You confirmed this resolution — IT Staff will do a final review");
+      }
+    } catch (e) {
+      setConfirmError("Network error");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     setCommentError("");
@@ -226,7 +258,7 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
 
   if (errorMsg) {
     return (
-      <div className="alert alert-danger">
+      <div className="alert alert-danger" role="alert">
         <h5 className="alert-heading mb-1">❌ Error</h5>
         <hr className="my-2" />
         <p className="mb-0">{errorMsg}</p>
@@ -241,6 +273,7 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
 
   if (!ticket) return null;
 
+
   const canResolve = ACTIVE_STATUSES.has(ticket.currentStatus) && !ticket.problemAppearsResolved;
 
   return (
@@ -254,6 +287,27 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
       <div className="row g-4">
         {/* Main Content (left column) */}
         <div className="col-12 col-lg-8">
+
+  {ticket.currentStatus === "Resolved" && !ticket.requesterConfirmedResolved && (
+    <div className="alert alert-info mt-3 d-flex align-items-center justify-content-between">
+      <div>
+        <strong>Please confirm:</strong> Does the solution provided resolve your issue?
+      </div>
+      <button 
+        className="btn btn-sm btn-success" 
+        disabled={confirmLoading}
+        onClick={handleConfirmResolved}
+      >
+        {confirmLoading ? "Confirming..." : "Confirm this is resolved"}
+      </button>
+    </div>
+  )}
+  {confirmMsg && <div className="alert alert-success mt-3" role="alert">{confirmMsg}</div>}
+  {confirmError && <div className="alert alert-danger mt-3" role="alert">{confirmError}</div>}
+  {ticket.currentStatus === "Resolved" && ticket.requesterConfirmedResolved && !confirmMsg && (
+    <div className="alert alert-success mt-3" role="alert">You confirmed this resolution — IT Staff will do a final review.</div>
+  )}
+
           {/* Ticket header card */}
           <div className="card mb-4" style={{ borderColor: ZEN.border }}>
             <div className="card-header bg-white d-flex justify-content-between align-items-center py-3">
@@ -516,6 +570,11 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
             attachments={ticket.attachments || []} 
             onAttachmentUpdated={loadTicket} 
           />
+        </div>
+
+        {/* Actions Taken - full-width row so the table is not squeezed into the 8-col column */}
+        <div className="col-12">
+          <ActionsTaken ticketId={ticket.id} userRole="Requester" />
         </div>
       </div>
     </div>

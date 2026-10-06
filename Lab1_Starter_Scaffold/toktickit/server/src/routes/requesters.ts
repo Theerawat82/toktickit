@@ -1,12 +1,14 @@
 import { Router, Request, Response } from "express";
 import { getPrisma } from "../prisma.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
-// GET /api/requesters          – returns all active requesters (default)
-// GET /api/requesters?active=true  – same, explicit filter
-// GET /api/requesters?active=false – returns inactive requesters
-router.get("/", async (req: Request, res: Response) => {
+// GET /api/requesters          — returns all active requesters (default)
+// GET /api/requesters?active=true  — same, explicit filter
+// GET /api/requesters?active=false — returns inactive requesters
+// RESTRICTED: IT_Staff and Administrator only (Security Hardening Issue 6)
+router.get("/", requireAuth, requireRole(["IT_Staff", "Administrator"]), async (req: Request, res: Response) => {
   try {
     const prisma = getPrisma();
 

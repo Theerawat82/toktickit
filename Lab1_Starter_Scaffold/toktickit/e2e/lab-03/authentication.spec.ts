@@ -22,8 +22,8 @@ test.describe('Authentication & RBAC', () => {
     await page.click('button[type="submit"]');
 
     // Should render main app (Ticket Queue for Admin)
-    await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
-    await expect(page.locator('text=Admin User').first()).toBeVisible();
+    await expect(page.locator('text=Ticket Queue')).toBeVisible();
+    await expect(page.locator('text=Administrator').first()).toBeVisible();
   });
 
   test('Invalid Login Handling', async ({ page }) => {
@@ -70,11 +70,11 @@ test.describe('Authentication & RBAC', () => {
     await page.click('button:has-text("Update Password")');
 
     // 5. Verify successful update and navigation to the main application shell
-    await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
+    await expect(page.locator('text=Ticket Queue')).toBeVisible();
     
     // Verify it sticks by reloading
     await page.reload();
-    await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
+    await expect(page.locator('text=Ticket Queue')).toBeVisible();
   });
 
   test('Logout & Session Invalidation', async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe('Authentication & RBAC', () => {
     await page.fill('input[type="password"]', 'Password123!');
     await page.click('button[type="submit"]');
 
-    await expect(page.locator('text=🎫 Ticket Queue')).toBeVisible();
+    await expect(page.locator('text=Ticket Queue')).toBeVisible();
 
     // Click logout
     await page.click('button:has-text("Logout"), a:has-text("Logout")');

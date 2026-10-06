@@ -186,3 +186,21 @@ export async function fetchStaffQueue(
 
   return res.json();
 }
+
+export async function getStaffDashboard() {
+  const res = await apiFetch("/api/dashboard/staff");
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to fetch staff dashboard");
+  }
+  return res.json();
+}
+
+export async function getRequesterDashboard() {
+  const res = await apiFetch("/api/dashboard/requester");
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to fetch requester dashboard");
+  }
+  return res.json();
+}

@@ -1,3 +1,4 @@
+import { ZEN } from './theme.js';
 import React, { useState, useCallback, useEffect } from "react";
 import { checkSystem, Category } from "./api.js";
 import { useAuth } from "./context/AuthContext.js";
@@ -10,6 +11,8 @@ import StaffTicketDetail from "./components/StaffTicketDetail.js";
 import StaffTicketQueue from "./components/StaffTicketQueue.js";
 import UserManagement from "./components/UserManagement.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
+import StaffDashboard from "./components/StaffDashboard.js";
+import RequesterDashboard from "./components/RequesterDashboard.js";
 
 type UiState = "idle" | "loading" | "success" | "error";
 
@@ -62,15 +65,23 @@ export default function App() {
             <div className="fw-bold">{user?.name}</div>
             <div className="small text-muted mb-2">{user?.role}</div>
             
-            <div className="d-flex gap-2 justify-content-end">
+            <div className="d-flex gap-2 justify-content-end mb-2 flex-wrap">
+              <a href="#dashboard" className={`btn btn-sm ${currentHash === "#dashboard" ? "btn-primary" : "btn-outline-primary"}`}>
+                Dashboard
+              </a>
               {user?.role === "Administrator" && (
-                <a href="#admin/users" className="btn btn-sm btn-outline-primary">
+                <a href="#admin/users" className={`btn btn-sm ${currentHash === "#admin/users" ? "btn-primary" : "btn-outline-primary"}`}>
                   User Management
                 </a>
               )}
-              {user?.role === "Administrator" && (
-                <a href="#" className="btn btn-sm btn-outline-secondary">
+              {(user?.role === "Administrator" || user?.role === "IT_Staff") && (
+                <a href="#" className={`btn btn-sm ${currentHash === "" || currentHash === "#" || currentHash.startsWith("#queue") ? "btn-secondary" : "btn-outline-secondary"}`}>
                   Queue
+                </a>
+              )}
+              {user?.role === "Requester" && (
+                <a href="#" className={`btn btn-sm ${currentHash === "" || currentHash === "#" || currentHash.startsWith("#mytickets") ? "btn-secondary" : "btn-outline-secondary"}`}>
+                  Home / Tickets
                 </a>
               )}
               <button className="btn btn-sm btn-outline-danger" onClick={logout}>
@@ -83,6 +94,12 @@ export default function App() {
         <>
           {currentHash === "#admin/users" && user?.role === "Administrator" ? (
             <UserManagement />
+          ) : currentHash === "#dashboard" ? (
+            user?.role === "IT_Staff" || user?.role === "Administrator" ? (
+              <StaffDashboard />
+            ) : (
+              <RequesterDashboard />
+            )
           ) : ticketId ? (
             user?.role === "IT_Staff" || user?.role === "Administrator" ? (
               <StaffTicketDetail ticketId={ticketId} />
@@ -135,7 +152,7 @@ export default function App() {
 
           {state === "success" && (
             <div className="card border-success">
-              <div className="card-header bg-success text-white d-flex align-items-center gap-2">
+              <div className="card-header text-white d-flex align-items-center gap-2" style={{ backgroundColor: ZEN.primary }}>
                 <span role="img" aria-label="check">✅</span>
                 <strong>System Status: Online</strong>
               </div>
@@ -157,3 +174,5 @@ export default function App() {
     </ProtectedRoute>
   );
 }
+
+

@@ -96,7 +96,36 @@ async function main() {
       role: "Requester",
       isActive: false,
       mustChangePassword: false,
+    },
+    {
+      email: "staff3@toktickit.com",
+      name: "IT Staff 3",
+      password: passwordHash,
+      role: "IT_Staff",
+      mustChangePassword: false,
+    },
+    {
+      email: "req1@toktickit.com",
+      name: "Requester 1",
+      password: passwordHash,
+      role: "Requester",
+      mustChangePassword: false,
+    },
+    {
+      email: "req2@toktickit.com",
+      name: "Requester 2",
+      password: passwordHash,
+      role: "Requester",
+      mustChangePassword: false,
+    },
+    {
+      email: "default_requester@toktickit.com",
+      name: "Default Requester",
+      password: passwordHash,
+      role: "Requester",
+      mustChangePassword: false,
     }
+
   ];
 
   for (const u of users) {
@@ -187,6 +216,86 @@ async function main() {
       }
     });
     console.log("Seeded sample comments and internal notes successfully.");
+
+  const req1 = await prisma.user.findUnique({ where: { email: "req1@toktickit.com" } });
+  const staff2 = await prisma.user.findUnique({ where: { email: "staff2@toktickit.com" } });
+  
+  if (req1 && staff2) {
+    const ticketsToSeed = [
+      { number: "TKT-100", status: "New", itPriority: "Low", req: req1.id, owner: null },
+      { number: "TKT-101", status: "Open", itPriority: "Medium", req: req1.id, owner: staff1.id },
+      { number: "TKT-102", status: "In_Progress", itPriority: "High", req: req1.id, owner: staff1.id },
+      { number: "TKT-103", status: "Waiting_for_Requester", itPriority: "Urgent", req: req1.id, owner: staff2.id },
+      { number: "TKT-104", status: "Resolved", itPriority: "Low", req: req1.id, owner: staff1.id },
+      { number: "TKT-105", status: "Closed", itPriority: "Low", req: req1.id, owner: staff2.id },
+      { number: "TKT-106", status: "Reopened", itPriority: "High", req: req1.id, owner: null },
+      { number: "TKT-107", status: "Cancelled", itPriority: "Low", req: req1.id, owner: staff1.id },
+      { number: "TKT-108", status: "New", itPriority: "Low", req: req1.id, owner: null },
+    ];
+
+    for (const t of ticketsToSeed) {
+      await prisma.ticket.upsert({
+        where: { ticketNumber: t.number },
+        update: {
+          status: t.status as any,
+          currentStatus: t.status,
+          itPriority: t.itPriority as any,
+          ticketOwnerId: t.owner,
+        },
+        create: {
+          ticketNumber: t.number,
+          summary: `Issue for ${t.number}`,
+          requestedPriority: "Low",
+          categoryId: category1.id,
+          relatedSystemId: system1.id,
+          requesterId: t.req,
+          status: t.status as any,
+          currentStatus: t.status,
+          itPriority: t.itPriority as any,
+          ticketOwnerId: t.owner,
+        },
+      });
+    }
+
+    const tkt100 = await prisma.ticket.findUnique({ where: { ticketNumber: "TKT-100" } });
+    const tkt101 = await prisma.ticket.findUnique({ where: { ticketNumber: "TKT-101" } });
+    const tkt102 = await prisma.ticket.findUnique({ where: { ticketNumber: "TKT-102" } });
+    
+    if (tkt100 && tkt101 && tkt102) {
+      await prisma.actionTaken.deleteMany({ where: { ticketId: tkt100.id } });
+
+      await prisma.actionTaken.deleteMany({ where: { ticketId: tkt101.id } });
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: tkt101.id,
+          actionDescription: "Assigned to myself",
+          result: "Assignment complete",
+          performedById: staff1.id,
+        }
+      });
+
+      await prisma.actionTaken.deleteMany({ where: { ticketId: tkt102.id } });
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: tkt102.id,
+          actionDescription: "Investigated initial issue",
+          result: "Found server down",
+          performedById: staff2.id,
+        }
+      });
+      await prisma.actionTaken.create({
+        data: {
+          ticketId: tkt102.id,
+          actionDescription: "Restarted server",
+          result: "Server is up",
+          performedById: staff1.id,
+          followUpRequired: true,
+          followUpNote: "Check back in 2 hours to ensure stability",
+        }
+      });
+    }
+  }
+
   }
 }
 
