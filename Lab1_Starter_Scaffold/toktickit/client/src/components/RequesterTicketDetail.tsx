@@ -177,7 +177,7 @@ export default function RequesterTicketDetail({ ticketId }: { ticketId: number }
       } else if (!res.ok) {
         setConfirmError(data.error || "Failed to confirm resolution");
       } else {
-        setTicket(data);
+        setTicket(data.ticket || data);
         setConfirmMsg("You confirmed this resolution — IT Staff will do a final review");
       }
     } catch (e) {
