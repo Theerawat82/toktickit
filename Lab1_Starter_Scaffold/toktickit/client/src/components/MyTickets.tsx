@@ -86,11 +86,20 @@ const STATUS_OPTIONS   = ["New", "Open", "In Progress", "Pending", "Resolved", "
 export default function MyTickets() {
   const { user } = useAuth();
 
+  const getInitialStatus = () => {
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    if (hash.includes("?")) {
+      const params = new URLSearchParams(hash.substring(hash.indexOf("?") + 1));
+      return params.get("currentStatus") || "";
+    }
+    return "";
+  };
+
   // ── Filters ──
   const [search, setSearch]                   = useState("");
   const [categoryFilter, setCategoryFilter]   = useState("");
   const [priorityFilter, setPriorityFilter]   = useState("");
-  const [statusFilter, setStatusFilter]       = useState("");
+  const [statusFilter, setStatusFilter]       = useState(getInitialStatus);
   const [sort, setSort]                       = useState("createdAt:desc");
 
   // ── Pagination ──
@@ -113,6 +122,24 @@ export default function MyTickets() {
       .then((r) => (r?.ok ? r.json() : []))
       .then(setCategories)
       .catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.includes("?")) {
+        const queryStr = hash.substring(hash.indexOf("?") + 1);
+        const params = new URLSearchParams(queryStr);
+        const status = params.get("currentStatus");
+        if (status) {
+          setStatusFilter(status);
+          setPage(1);
+        }
+      }
+    };
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
   }, []);
 
   // ── Fetch tickets whenever filters / page / requester change ──
@@ -266,6 +293,11 @@ export default function MyTickets() {
               style={{ borderColor: ZEN.border }}
             >
               <option value="">All Statuses</option>
+              {statusFilter && !STATUS_OPTIONS.includes(statusFilter) && (
+                <option value={statusFilter}>
+                  {statusFilter.includes("Open") && statusFilter.includes("New") ? "Open (New, Open, Reopened)" : statusFilter.replace(/_/g, " ")}
+                </option>
+              )}
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}

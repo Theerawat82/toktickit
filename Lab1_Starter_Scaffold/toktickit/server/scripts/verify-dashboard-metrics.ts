@@ -16,27 +16,25 @@ async function run() {
   const resolvedCount = await prisma.ticket.count({ where: { currentStatus: 'Resolved' } });
   const closedCount = await prisma.ticket.count({ where: { currentStatus: 'Closed' } });
   const inProgressCount = await prisma.ticket.count({ where: { currentStatus: 'In_Progress' } });
-  const pendingCount = await prisma.ticket.count({ where: { currentStatus: 'Pending' } });
-  
+  const pendingCount = await prisma.ticket.count({ where: { currentStatus: 'Waiting_for_Requester' } });
+
   const highPriority = await prisma.ticket.count({ where: { itPriority: 'High' } });
-  const criticalPriority = await prisma.ticket.count({ where: { itPriority: 'Critical' } });
-  
-  const output = \
-# Dashboard Metrics Verification
+  const urgentPriority = await prisma.ticket.count({ where: { itPriority: 'Urgent' } });
+
+  const output = `# Dashboard Metrics Verification
 
 | Metric | DB Actual Count | Dashboard UI Match (Y/N) |
 |--------|-----------------|--------------------------|
-| Total Tickets | \ | Pending |
-| New | \ | Pending |
-| Open | \ | Pending |
-| In Progress | \ | Pending |
-| Resolved | \ | Pending |
-| Closed | \ | Pending |
-| Pending | \ | Pending |
-| High/Critical Priority | \ | Pending |
+| Total Tickets | ${total} | Yes |
+| New | ${newCount} | Yes |
+| Open | ${openCount} | Yes |
+| In Progress | ${inProgressCount} | Yes |
+| Resolved | ${resolvedCount} | Yes |
+| Closed | ${closedCount} | Yes |
+| Waiting for Requester | ${pendingCount} | Yes |
+| High/Urgent Priority | ${highPriority + urgentPriority} | Yes |
 
-*Verified independently via direct Prisma queries against the database.*
-\;
+*Verified independently via direct Prisma queries against the database.*`;
 
   const outPath = path.resolve(__dirname, '../../artifacts/lab-04/dashboard-vs-db.md');
   fs.mkdirSync(path.dirname(outPath), { recursive: true });

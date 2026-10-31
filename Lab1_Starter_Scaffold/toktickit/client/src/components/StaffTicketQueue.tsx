@@ -48,13 +48,26 @@ interface StaffTicketFilterParams {
   category?: string;
   status?: string;
   itPriority?: string;
-  ownerId?: number;
+  ownerId?: number | "unassigned" | "me";
   sort?: string;
   order?: "asc" | "desc";
   page?: number;
   pageSize?: number;
 }
 
+
+// Reads filter params from the hash query string, e.g. "#queue?status=Open&ownerId=me"
+function readQueueHashParams() {
+  const hash = window.location.hash;
+  const qIndex = hash.indexOf("?");
+  const params = new URLSearchParams(qIndex >= 0 ? hash.slice(qIndex + 1) : "");
+  return {
+    status: params.get("status") ?? "",
+    category: params.get("category") ?? "",
+    itPriority: params.get("itPriority") ?? "",
+    ownerId: params.get("ownerId") ?? "",
+  };
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -82,15 +95,31 @@ export default function StaffTicketQueue() {
 
   // ── Filters ──
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState(""); // Bug 6: category filter state
-  const [itPriorityFilter, setItPriorityFilter] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(() => readQueueHashParams().status);
+  const [categoryFilter, setCategoryFilter] = useState(() => readQueueHashParams().category); // Bug 6: category filter state
+  const [itPriorityFilter, setItPriorityFilter] = useState(() => readQueueHashParams().itPriority);
+  const [ownerFilter, setOwnerFilter] = useState(() => readQueueHashParams().ownerId);
   const [sort, setSort] = useState("createdAt:desc");
 
   // ── Pagination ──
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
+
+  // Re-apply drill-down filters when the hash changes while this component stays mounted
+  useEffect(() => {
+    const onHashChange = () => {
+      const h = window.location.hash;
+      if (h !== "" && h !== "#" && !h.startsWith("#queue")) return;
+      const p = readQueueHashParams();
+      setStatusFilter(p.status);
+      setCategoryFilter(p.category);
+      setItPriorityFilter(p.itPriority);
+      setOwnerFilter(p.ownerId);
+      setPage(1);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   // ── Data ──
   const [tickets, setTickets] = useState<StaffTicket[]>([]);
@@ -165,7 +194,7 @@ export default function StaffTicketQueue() {
   const handleStatusChange = (v: string) => { setStatusFilter(v); resetPage(); };
   const handleCategoryChange = (v: string) => { setCategoryFilter(v); resetPage(); }; // Bug 6
   const handlePriorityChange = (v: string) => { setItPriorityFilter(v); resetPage(); };
-  const handleOwnerChange = (v: string) => { setOwnerFilter(v === "" ? "" : String(Number(v))); resetPage(); };
+  const handleOwnerChange = (v: string) => { setOwnerFilter(v === "" || v === "unassigned" || v === "me" ? v : String(Number(v))); resetPage(); };
 
   const clearFilters = () => {
     setSearch("");
@@ -174,6 +203,7 @@ export default function StaffTicketQueue() {
     setItPriorityFilter("");
     setOwnerFilter("");
     setSort("createdAt:desc");
+    window.history.pushState(null, "", "#queue");
     setPage(1);
   };
 
@@ -281,6 +311,8 @@ export default function StaffTicketQueue() {
               style={{ borderColor: ZEN.border }}
             >
               <option value="">All Owners</option>
+              <option value="unassigned">Unassigned</option>
+              <option value="me">My Assigned</option>
               {staffUsers.map((u) => (
                 <option key={u.id} value={String(u.id)}>{u.name}</option>
               ))}
@@ -380,7 +412,7 @@ export default function StaffTicketQueue() {
                         </td>
                         <td style={{ color: ZEN.neutral }}>{t.category?.name ?? "—"}</td>
                         <td><Badge text={t.itPriority} map={priorityBadgeStyle} /></td>
-                        <td><Badge text={t.currentStatus} map={statusBadgeStyle} /></td>
+                        <td><Badge text={t.currentStatus.replace(/_/g, " ")} map={statusBadgeStyle} /></td>
                         <td style={{ color: ZEN.neutral }}>{t.requester?.name ?? "—"}</td>
                         <td style={{ color: ZEN.neutral }}>{t.owner?.name ?? "—"}</td>
                         <td style={{ color: ZEN.neutral, whiteSpace: "nowrap" }}>{formatDate(t.updatedAt)}</td>
@@ -405,7 +437,7 @@ export default function StaffTicketQueue() {
                       <a href={`#ticket/${t.id}`} style={{ color: ZEN.secondary, fontWeight: 700, fontSize: 14 }}>
                         {t.ticketNumber}
                       </a>
-                      <Badge text={t.currentStatus} map={statusBadgeStyle} />
+                      <Badge text={t.currentStatus.replace(/_/g, " ")} map={statusBadgeStyle} />
                     </div>
                     <div style={{ fontSize: 14, color: ZEN.neutral, fontWeight: 500 }} className="mb-1">
                       {t.summary}

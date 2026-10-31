@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+﻿import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
 import { app } from "../../src/app.js";
 import { getPrisma } from "../../src/prisma.js";
@@ -56,7 +56,7 @@ describe("Issue 5: Staff Dashboard API", () => {
 
   it("should return correct unassignedCount excluding Closed/Cancelled", async () => {
     const res = await request(app).get("/api/dashboard/staff").set("Authorization", `Bearer ${staffToken}`);
-    expect(res.status).toBe(200);
+    if(res.status !== 200) console.log(res.body); expect(res.status).toBe(200);
     // DASH-ST-001 is New/unassigned. DASH-ST-002 is Closed/unassigned.
     // There are other seeded tickets, but we ensure our explicitly created ones are in there.
     // We can just verify it's a number and >= 1
@@ -105,7 +105,7 @@ describe("Issue 5: Staff Dashboard API", () => {
 
   it("should include admin-only fields when called by Administrator", async () => {
     const res = await request(app).get("/api/dashboard/staff").set("Authorization", `Bearer ${adminToken}`);
-    expect(res.status).toBe(200);
+    if(res.status !== 200) console.log(res.body); expect(res.status).toBe(200);
     expect(res.body.activeUserCount).toBeDefined();
     expect(res.body.inactiveUserCount).toBeDefined();
   });
@@ -125,7 +125,47 @@ describe("Issue 5: Staff Dashboard API", () => {
     const newStaff = await prisma.user.create({ data: { name: "Zero Staff", email: "zero@staff.com", password: "p", role: "IT_Staff", mustChangePassword: false } });
     const zeroToken = jwt.sign({ id: newStaff.id, role: newStaff.role }, process.env.JWT_SECRET || "fallback-secret-for-development");
     const res = await request(app).get("/api/dashboard/staff").set("Authorization", `Bearer ${zeroToken}`);
-    expect(res.status).toBe(200);
+    if(res.status !== 200) console.log(res.body); expect(res.status).toBe(200);
     expect(res.body.myAssignedCount).toBe(0);
   });
+
+  it("drill-down integration: should filter queue to unassigned tickets excluding Closed/Cancelled", async () => {
+    const res = await request(app).get("/api/tickets/queue?ownerId=unassigned").set("Authorization", `Bearer ${staffToken}`);
+    
+    if(res.status !== 200) console.log(res.body); expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThan(0); // seed has at least 1
+    res.body.data.forEach((t: any) => {
+      expect(t.owner).toBeNull();
+      expect(["Closed", "Cancelled"]).not.toContain(t.currentStatus);
+    });
+  });
+  it("drill-down integration: queue counts must exactly match dashboard metrics", async () => {
+    // 1. Fetch dashboard metrics
+    const dashRes = await request(app).get("/api/dashboard/staff").set("Authorization", `Bearer ${staffToken}`);
+    expect(dashRes.status).toBe(200);
+    const { unassignedCount, myAssignedCount } = dashRes.body;
+
+    // 2. Fetch unassigned queue and verify items
+    const unassignedRes = await request(app).get("/api/tickets/queue?ownerId=unassigned").set("Authorization", `Bearer ${staffToken}`);
+    expect(unassignedRes.status).toBe(200);
+    expect(unassignedRes.body.pagination.totalItems).toBe(unassignedCount);
+    unassignedRes.body.data.forEach((t: any) => {
+      expect(t.owner).toBeNull();
+      expect(["Closed", "Cancelled"]).not.toContain(t.currentStatus);
+    });
+
+    // 3. Fetch My Assigned queue and verify items
+    const meRes = await request(app).get("/api/tickets/queue?ownerId=me").set("Authorization", `Bearer ${staffToken}`);
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.pagination.totalItems).toBe(myAssignedCount);
+    meRes.body.data.forEach((t: any) => {
+      expect(t.owner.id).toBe(staffUser.id);
+      expect(["Closed", "Cancelled"]).not.toContain(t.currentStatus);
+    });
+  });
 });
+
+
+
+
+

@@ -24,7 +24,7 @@ export default function StaffDashboard() {
       const result = await getStaffDashboard();
       setData(result);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch staff dashboard");
+      setError(err?.message || "Failed to load metrics");
     } finally {
       setLoading(false);
     }
@@ -37,8 +37,10 @@ export default function StaffDashboard() {
   if (loading) return <div>Loading dashboard...</div>;
   if (error) {
     return (
-      <div className="alert alert-danger">
-        <p>{error}</p>
+      <div className="alert alert-danger my-3" data-testid="dashboard-error" role="alert">
+        <h5 className="alert-heading fw-bold mb-1">Failed to load metrics</h5>
+        {error !== "Failed to load metrics" && <span className="visually-hidden">{error}</span>}
+        <p className="mb-2">Unable to retrieve dashboard metrics at this time. Please check your network connection and try again.</p>
         <button className="btn btn-sm btn-outline-danger" onClick={fetchDashboard}>Retry</button>
       </div>
     );
@@ -46,9 +48,9 @@ export default function StaffDashboard() {
 
   if (!data) return null;
 
-    const openStatusCount = data.statusBreakdown["Open"] || 0;
-  const inProgressStatusCount = data.statusBreakdown["InProgress"] || 0;
-  const waitingStatusCount = data.statusBreakdown["Waiting for Requester"] || 0;
+  const openStatusCount = data.statusBreakdown["Open"] || 0;
+  const inProgressStatusCount = data.statusBreakdown["In_Progress"] ?? data.statusBreakdown["InProgress"] ?? 0;
+  const waitingStatusCount = data.statusBreakdown["Waiting_for_Requester"] ?? data.statusBreakdown["Waiting for Requester"] ?? 0;
   const newStatusCount = data.statusBreakdown["New"] || 0;
 
   return (

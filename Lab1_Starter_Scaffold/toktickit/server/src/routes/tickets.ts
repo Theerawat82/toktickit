@@ -297,9 +297,19 @@ router.get("/", async (req: Request, res: Response) => {
 
 
     if (currentStatus) {
-
-      whereClause.currentStatus = currentStatus;
-
+      const rawList = (currentStatus as string).split(",").map(s => s.trim());
+      const variants = new Set<string>();
+      for (const s of rawList) {
+        variants.add(s);
+        variants.add(s.replace(/_/g, " "));
+        variants.add(s.replace(/ /g, "_"));
+      }
+      const statusArr = Array.from(variants);
+      if (statusArr.length === 1) {
+        whereClause.currentStatus = statusArr[0];
+      } else {
+        whereClause.currentStatus = { in: statusArr };
+      }
     }
 
 
@@ -487,9 +497,22 @@ router.get("/queue", requireRole(["IT_Staff", "Administrator"]), async (req: Req
 
 
     if (ownerId) {
-
-      whereClause.ticketOwnerId = Number(ownerId);
-
+      if (ownerId === 'unassigned') {
+        whereClause.ticketOwnerId = null;
+        if (!status) {
+          whereClause.currentStatus = { notIn: ['Closed', 'Cancelled'] };
+        }
+      } else if (ownerId === 'me') {
+        whereClause.ticketOwnerId = req.user!.id;
+        if (!status) {
+          whereClause.currentStatus = { notIn: ['Closed', 'Cancelled'] };
+        }
+      } else {
+        const parsedOwnerId = Number(ownerId);
+        if (!isNaN(parsedOwnerId)) {
+          whereClause.ticketOwnerId = parsedOwnerId;
+        }
+      }
     }
 
 
@@ -1334,7 +1357,10 @@ router.get("/:id/actions", verifyTicketOwnership, async (req: Request, res: Resp
 
     const actions = await prisma.actionTaken.findMany({
       where: { ticketId },
-      orderBy: { actionDateTime: "asc" },
+      orderBy: [
+        { actionDateTime: "asc" },
+        { id: "asc" }
+      ],
       include: { performedBy: { select: { id: true, name: true, role: true } } }
     });
 

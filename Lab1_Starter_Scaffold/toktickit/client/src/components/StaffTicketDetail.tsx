@@ -202,13 +202,14 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
   if (!ticket) return null;
 
   const getValidStatuses = (currentStatus: string) => {
-    switch (currentStatus) {
+    const s = (currentStatus || "").replace(/_/g, " ");
+    switch (s) {
       case "New": return ["New", "Open", "Cancelled"];
       case "Open": return ["Open", "In Progress", "Resolved", "Cancelled"];
       case "In Progress": return ["In Progress", "Waiting for Requester", "Resolved"];
-      case "Waiting for Requester": return ["Waiting for Requester", "In Progress"];
+      case "Waiting for Requester": return ["Waiting for Requester", "In Progress", "Resolved"];
       case "Resolved": return ["Resolved", "Closed", "Reopened"];
-      case "Reopened": return ["Reopened", "Open"];
+      case "Reopened": return ["Reopened", "In Progress", "Resolved"];
       case "Closed": return ["Closed"];
       case "Cancelled": return ["Cancelled"];
       default: return [currentStatus];
@@ -394,7 +395,7 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
                       <select
                           aria-label="Current Status"
                           className="form-select"
-                          value={ticket.currentStatus}
+                          value={(ticket.currentStatus || "").replace(/_/g, " ")}
                           onChange={(e) => handleAction("status", { status: e.target.value, version: ticket.version }, "Status updated successfully.")}
                           disabled={actionLoading}
                         >
@@ -444,10 +445,16 @@ export default function StaffTicketDetail({ ticketId }: { ticketId: number }) {
                   <div className="text-muted small fw-semibold text-uppercase">Created At</div>
                   <div>{formatDate(ticket.createdAt)}</div>
                 </li>
-                <li>
+                <li className="mb-3">
                   <div className="text-muted small fw-semibold text-uppercase">Last Updated</div>
                   <div>{formatDate(ticket.updatedAt)}</div>
                 </li>
+                {ticket.requesterConfirmedResolved && (
+                  <li>
+                    <div className="text-muted small fw-semibold text-uppercase">Requester Confirmation</div>
+                    <div className="mt-1"><span className="badge bg-success" style={{ backgroundColor: "#006B3C" }}>Resolution Confirmed ✅</span></div>
+                  </li>
+                )}
               </ul>
             </div>
           </div>
